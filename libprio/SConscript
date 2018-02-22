@@ -1,0 +1,15 @@
+import os
+
+Import('env')
+
+src = [
+    "client.c",
+]
+
+libs = [
+  "-lnss3"
+]
+
+env.Append(LIBS = libs)
+env.StaticLibrary("libprio", src)
+

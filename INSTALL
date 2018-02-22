@@ -1,0 +1,20 @@
+===================================
+=== INSTALLATION
+
+Once you have installed NSS and SCons, compilation should be pretty easy.
+
+To compile the code, run:
+$ scons
+
+To run the test suite, execute:
+$ build/btest/btest -v
+
+To print debug messages while compiling:
+$ scons VERBOSE=1
+
+To compile with profiling, run:
+$ scons WITH_GPROF=1
+
+To clean up the object and binary files, run:
+$ scons -c
+
