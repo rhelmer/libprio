@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Henry Corrigan-Gibbs
+ * Copyright (c) 2018, Henry Corrigan-Gibbs
  * 
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,26 +14,33 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef __TIMING_H__
-#define __TIMING_H__
 
-#include <time.h>
-#include <sys/time.h>
+#include "../libmpi/mpi.h"
+#include "mutest.h"
 
-inline uint64_t 
-rdtsc (void)
+
+void 
+mu_test_mpi__add (void) 
 {
-    unsigned int lo,hi;
-    __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
-    return ((uint64_t)hi << 32) | lo;
+  mp_int a;
+  mp_int b;
+  mp_int c;
+
+  mu_check (mp_init (&a) == MP_OKAY);
+  mu_check (mp_init (&b) == MP_OKAY);
+  mu_check (mp_init (&c) == MP_OKAY);
+
+  mp_set (&a, 10);
+  mp_set (&b, 7);
+  mp_add (&a, &b, &c);
+
+  mp_set (&a, 17);
+  mu_check (mp_cmp (&a, &c) == 0);
+
+  mp_clear (&a);
+  mp_clear (&b);
+  mp_clear (&c);
 }
 
-inline double 
-wall_sec (void)
-{
-    struct timeval t;
-    gettimeofday (&t, NULL);
-    return (double)t.tv_sec + ((double)t.tv_usec/1000000.0);
-}
 
-#endif
+

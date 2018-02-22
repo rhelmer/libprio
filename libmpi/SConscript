@@ -1,0 +1,32 @@
+import os
+
+Import('env')
+
+env.Replace(CFLAGS = [ "-O2", "-pedantic", "-Wall"])
+
+src = [
+"montmulf.c",
+#"mpcpucache.c",
+#"mpi_amd64.c", 
+"mpi.c",
+#"mpi_sparc.c",
+"mplogic.c",
+"mpprime.c",
+"mpv_sparc.c", 
+"primes.c",
+"mp_comba.c",
+"mp_gf2m.c",
+#"mpi_arm.c",
+#"mpi_hp.c",
+#"mpi_x86_asm.c",
+"mpmontg.c",
+#"mpvalpha.c",
+"mulsqr.c",
+]
+
+libs = [
+]
+
+env.Append(LIBS = libs)
+env.StaticLibrary("libmpi", src)
+

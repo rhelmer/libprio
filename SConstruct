@@ -46,7 +46,6 @@ opts = Variables('Local.sc')
 
 opts.AddVariables(
     ("CC", "C Compiler"),
-    ("CXX", "C++ Compiler"),
     ("AS", "Assembler"),
     ("LINK", "Linker"),
     ("NUMCPUS", "Number of CPUs to use for build (0 means auto)", 0, None, int),
@@ -60,15 +59,12 @@ opts.AddVariables(
 
 env = Environment(options = opts,
                   tools = ['default'],
-                  ENV = os.environ,
-                  LINK = "g++")
+                  ENV = os.environ)
 Help(opts.GenerateHelpText(env))
 
 # Copy environment variables
 if os.environ.has_key('CC'):
     env["CC"] = os.getenv('CC')
-if os.environ.has_key('CXX'):
-    env["CXX"] = os.getenv('CXX')
 if os.environ.has_key('AS'):
     env["AS"] = os.getenv('AS')
 if os.environ.has_key('LD'):
@@ -77,13 +73,10 @@ if os.environ.has_key('CFLAGS'):
     env.Append(CCFLAGS = SCons.Util.CLVar(os.environ['CFLAGS']))
 if os.environ.has_key('CPPFLAGS'):
     env.Append(CPPFLAGS = SCons.Util.CLVar(os.environ['CPPFLAGS']))
-if os.environ.has_key('CXXFLAGS'):
-    env.Append(CXXFLAGS = SCons.Util.CLVar(os.environ['CXXFLAGS']))
 if os.environ.has_key('LDFLAGS'):
     env.Append(LINKFLAGS = SCons.Util.CLVar(os.environ['LDFLAGS']))
 
 env.Append(CFLAGS = [ "-Wall", "-Werror", "-Wextra", "-O3", "-std=c99"])
-env.Append(CXXFLAGS = [ "-Wall", "-Werror", "-Wextra", "-O3", "-std=c++11"])
 
 if "WITH_GPROF" in env and env["WITH_GPROF"]:
     print "With gprof"
@@ -128,8 +121,8 @@ conf.Finish()
 Export('env')
 
 # Set compile options for binaries
-env.Append(LIBS = ["libprio"], \
-  LIBPATH = ['#build/libprio'])
+env.Append(LIBS = ["libprio", "libmpi"], \
+  LIBPATH = ['#build/libprio', "#build/libmpi"])
 
 # Add header files
 env.Append(CPPPATH = ["#include", "#."])
@@ -138,8 +131,8 @@ env.Append(CPPFLAGS = ['-pthread'])
 env.Append(LIBS = ["crypto", "pthread", "m"])
 
 
-# libballoon
 SConscript('libprio/SConscript', variant_dir='build/libprio')
+SConscript('libmpi/SConscript', variant_dir='build/libmpi')
 
 # Utilities
 if env["BUILD_BINARIES"]:

@@ -2,7 +2,7 @@ import sys
 
 Import('env')
 
-ballon_env = env.Clone()
+prio_env = env.Clone()
 
 src = [
     "main.c",
@@ -12,6 +12,6 @@ libs = [
   "libprio",
 ]
 
-ballon_env.Append(LIBS = libs)
-ballon_env.Program("pclient", src)
+prio_env.Append(LIBS = libs)
+prio_env.Program("pclient", src)
 

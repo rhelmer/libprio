@@ -18,10 +18,38 @@
 #ifndef __PRIO_H__
 #define __PRIO_H__
 
-#include <inttypes.h>
 #include <stdbool.h>
 #include <stddef.h>
 
+#define ERROR 1
+
+struct prio_config {
+  int data_len;
+};
+
+struct prio_packet_client {
+  int blah;
+};
+
+struct prio_packet_server_cor {
+  int blah;
+};
+
+struct prio_packet_server_out {
+  int blah;
+};
+
+
+int prio_client_encode (const struct prio_config *c, const bool data_in[],
+    struct prio_packet_client *for_server_a, struct prio_packet_client *for_server_b);
+
+int prio_server_correction (const struct prio_config *c, 
+    const struct prio_packet_client *for_server,
+    struct prio_packet_server_cor *cor);
+
+int prio_server_valid (const struct prio_config *c, 
+    struct prio_packet_server_cor *corA,
+    struct prio_packet_server_cor *corB);
 
 
 #endif /* __PRIO_H__ */
