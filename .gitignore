@@ -1,3 +1,9 @@
+# NSS files
+cert9.db
+pkcs11.txt
+key4.db
+config.log
+
 # Object files
 *.o
 *.ko

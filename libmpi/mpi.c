@@ -2390,7 +2390,7 @@ mp_invmod(const mp_int *a, const mp_int *m, mp_int *c)
  */
 
 void
-mp_print(mp_int *mp, FILE *ofp)
+mp_print(const mp_int *mp, FILE *ofp)
 {
     int ix;
 

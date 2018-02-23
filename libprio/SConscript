@@ -13,6 +13,9 @@ src = [
 libs = [
 ]
 
+# Enable mp_print()
+penv.Append(CFLAGS = ['-DMP_IOFUNC'])
+
 penv.Append(LIBS = libs)
 penv.StaticLibrary("libprio", src)
 

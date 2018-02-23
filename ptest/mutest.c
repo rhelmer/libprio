@@ -13,6 +13,7 @@
  * Please, read the README file for more details.
  */
 
+#include "libprio/rand.h" 
 #include "mutest.h" /* MU_* constants, mu_print() */
 #include <stdio.h> /* printf(), fprintf() */
 #include <string.h> /* strncmp() */
@@ -69,6 +70,7 @@ void parse_args(__attribute__((unused)) int argc, char* argv[]) {
 
 int main(int argc, char* argv[]) {
 
+  rand_init ();
 	parse_args(argc, argv);
 
 	mu_run_suites();

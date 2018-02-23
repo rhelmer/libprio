@@ -14,29 +14,68 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include "debug.h"
 #include "rand.h"
 
 #include "include/prio.h"
+
+#include <limits.h>
+#include <nss/nss.h>
 #include <nss/pk11pub.h>
+
+static bool nss_initialized = false;
+
+int
+rand_init (void)
+{
+  int error = NSS_InitReadWrite (".");
+  if (error != SECSuccess) 
+    return PRIO_ERROR;
+
+  // For this example, we don't use database passwords
+  PK11_InitPin(PK11_GetInternalKeySlot(), "", "");
+
+  nss_initialized = true;
+  return PRIO_OKAY;
+}
 
 int 
 rand_int (mp_int *out, const mp_int *max)
 {
+  if (!nss_initialized) {
+    PRIO_DEBUG ("NSS not initialized. Call rand_init() first.");
+    return PRIO_ERROR;
+  }
+
+  // Ensure max value is > 0
+  if (mp_cmp_z (max) == 0)
+    return PRIO_ERROR;
+
+  // Compute max-1, which tells us the largest
+  // value we will ever need to generate.
+  if (mp_sub_d (max, 1, out) != MP_OKAY)
+    return PRIO_ERROR;
+
+  const int nbytes = mp_unsigned_octet_size (out);
+
   do {
-    const int nbits = mp_raw_size (max);
-    const bool mul_of_byte = nbits % sizeof (unsigned char);
-    const int byte_len = nbits / sizeof (unsigned char);
-    const int nbytes = mul_of_byte ? byte_len : byte_len + 1;
 
     unsigned char rand_bytes[nbytes+1];
     // First byte in mpi determines sign of integer.
     // Zero byte means positive.
     rand_bytes[0] = '\0';
-    if (PK11_GenerateRandom(rand_bytes+1, nbytes) != SECSuccess)
+    int error;
+    if ((error=PK11_GenerateRandom(rand_bytes+1, nbytes)) != SECSuccess) 
+    {
+      PRIO_DEBUG ("Error calling PK11_GenerateRandom");
       return PRIO_ERROR;
+    }
 
     if (mp_read_raw (out, (char *)rand_bytes, nbytes+1) != MP_OKAY)
+    {
+      PRIO_DEBUG ("Error converting bytes to big integer");
       return PRIO_ERROR;
+    }
 
     // Use [inefficient] rejection sampling to find a number
     // strictly less than max.

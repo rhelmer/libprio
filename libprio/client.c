@@ -33,6 +33,9 @@ prio_client_packet_new (const struct prio_config *cfg, const bool *data_in,
 
   triple_rand (cfg, for_server_a->triple, for_server_b->triple);
 
+  if(data_in[0]) {
+  }
+
   return 0;
 }
 

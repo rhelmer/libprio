@@ -15,13 +15,16 @@
  */
 
 
-#ifndef __RAND_H__
-#define __RAND_H__
+#ifndef __DEBUG_H__
+#define __DEBUG_H__
 
-#include "libmpi/mpi.h"
+#include <stdio.h>
 
-int rand_init (void);
-int rand_int (mp_int *out, const mp_int *max);
+#ifdef DEBUG
+#define PRIO_DEBUG(msg) do { fprintf(stderr, "Error: %s\n", msg); } while(false);
+#else
+#define PRIO_DEBUG(msg) ;
+#endif
 
-#endif /* __RAND_H__ */
+#endif /* __DEBUG_H__ */
 

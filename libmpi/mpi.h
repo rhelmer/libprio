@@ -232,7 +232,7 @@ mp_err mp_invmod_xgcd(const mp_int *a, const mp_int *m, mp_int *c);
 
 /* Input and output        */
 #if MP_IOFUNC
-void mp_print(mp_int *mp, FILE *ofp);
+void mp_print(const mp_int *mp, FILE *ofp);
 #endif /* end MP_IOFUNC */
 
 /* Base conversion         */
