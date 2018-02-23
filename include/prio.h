@@ -21,35 +21,40 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#define ERROR 1
+#define PRIO_OKAY 0
+#define PRIO_ERROR 1
 
-struct prio_config {
+struct prio_config; 
+struct beaver_triple; 
+struct prio_packet_client;
+struct prio_packet_server;
+
+/*{
+  mp_int modulus;
   int data_len;
 };
+*/
 
 struct prio_packet_client {
-  int blah;
+  struct beaver_triple *triple;
 };
 
-struct prio_packet_server_cor {
-  int blah;
-};
-
-struct prio_packet_server_out {
-  int blah;
+struct prio_packet_server {
 };
 
 
-int prio_client_encode (const struct prio_config *c, const bool data_in[],
+int prio_client_packet_new (const struct prio_config *c, const bool *data_in,
     struct prio_packet_client *for_server_a, struct prio_packet_client *for_server_b);
+void prio_client_packet_clear (struct prio_packet_client *c);
 
-int prio_server_correction (const struct prio_config *c, 
+int prio_server_packet_new (const struct prio_config *c, 
     const struct prio_packet_client *for_server,
-    struct prio_packet_server_cor *cor);
+    struct prio_packet_server *cor);
+void prio_server_packet_clear(struct prio_packet_server *cor);
 
 int prio_server_valid (const struct prio_config *c, 
-    struct prio_packet_server_cor *corA,
-    struct prio_packet_server_cor *corB);
+    const struct prio_packet_server *corA,
+    const struct prio_packet_server *corB);
 
 
 #endif /* __PRIO_H__ */

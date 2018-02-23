@@ -14,31 +14,17 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+
+#ifndef __CONFIG_H__
+#define __CONFIG_H__
+
 #include "libmpi/mpi.h"
-#include "include/prio.h"
 
-#include "triple.h"
+struct prio_config {
+  int num_data_fields;
+  mp_int modulus;
+};
 
 
-int 
-prio_client_packet_new (const struct prio_config *cfg, const bool *data_in,
-    struct prio_packet_client *for_server_a, struct prio_packet_client *for_server_b)
-{
-  int error;
-
-  if ((error = triple_new (for_server_a->triple)) != PRIO_OKAY)
-    return error;
-  if ((error = triple_new (for_server_b->triple)) != PRIO_OKAY)
-    return error;
-
-  triple_rand (cfg, for_server_a->triple, for_server_b->triple);
-
-  return 0;
-}
-
-void
-prio_client_packet_clear (struct prio_packet_client *p)
-{
-  triple_clear (p->triple);
-}
+#endif /* __CONFIG_H__ */
 

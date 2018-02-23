@@ -14,31 +14,24 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+
+#ifndef __TRIPLE_H__
+#define __TRIPLE_H__
+
 #include "libmpi/mpi.h"
-#include "include/prio.h"
 
-#include "triple.h"
+struct beaver_triple {
+  mp_int a;
+  mp_int b;
+  mp_int c;
+};
 
+int triple_new (struct beaver_triple *triple);
+void triple_clear (struct beaver_triple *triple);
 
-int 
-prio_client_packet_new (const struct prio_config *cfg, const bool *data_in,
-    struct prio_packet_client *for_server_a, struct prio_packet_client *for_server_b)
-{
-  int error;
+int triple_rand (const struct prio_config *cfg, 
+    struct beaver_triple *triple_a, 
+    struct beaver_triple *triple_b);
 
-  if ((error = triple_new (for_server_a->triple)) != PRIO_OKAY)
-    return error;
-  if ((error = triple_new (for_server_b->triple)) != PRIO_OKAY)
-    return error;
-
-  triple_rand (cfg, for_server_a->triple, for_server_b->triple);
-
-  return 0;
-}
-
-void
-prio_client_packet_clear (struct prio_packet_client *p)
-{
-  triple_clear (p->triple);
-}
+#endif /* __TRIPLE_H__ */
 

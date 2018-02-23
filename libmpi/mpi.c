@@ -2454,7 +2454,7 @@ mp_read_raw(mp_int *mp, char *str, int len)
 /* {{{ mp_raw_size(mp) */
 
 int
-mp_raw_size(mp_int *mp)
+mp_raw_size(const mp_int *mp)
 {
     ARGCHK(mp != NULL, 0);
 

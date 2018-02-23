@@ -237,7 +237,7 @@ void mp_print(mp_int *mp, FILE *ofp);
 
 /* Base conversion         */
 mp_err mp_read_raw(mp_int *mp, char *str, int len);
-int mp_raw_size(mp_int *mp);
+int mp_raw_size(const mp_int *mp);
 mp_err mp_toraw(mp_int *mp, char *str);
 mp_err mp_read_radix(mp_int *mp, const char *str, int radix);
 mp_err mp_read_variable_radix(mp_int *a, const char *str, int default_radix);

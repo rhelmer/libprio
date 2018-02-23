@@ -86,9 +86,9 @@ if "WITH_GPROF" in env and env["WITH_GPROF"]:
 
 if env["BUILDTYPE"] == "DEBUG":
     print "DEBUG MODE!"
-    env.Append(CPPFLAGS = [ "-g", "-DDEBUG", "-Wall"])
+    env.Append(CPPFLAGS = [ "-g", "-DDEBUG"])
 elif env["BUILDTYPE"] == "RELEASE":
-    env.Append(CPPFLAGS = ["-DNDEBUG", "-Wall" ])
+    env.Append(CPPFLAGS = ["-DNDEBUG"])
 else:
     print "Error BUILDTYPE must be RELEASE or DEBUG"
     sys.exit(-1)
@@ -126,10 +126,6 @@ env.Append(LIBS = ["libprio", "libmpi"], \
 
 # Add header files
 env.Append(CPPPATH = ["#include", "#."])
-
-env.Append(CPPFLAGS = ['-pthread'])
-env.Append(LIBS = ["crypto", "pthread", "m"])
-
 
 SConscript('libprio/SConscript', variant_dir='build/libprio')
 SConscript('libmpi/SConscript', variant_dir='build/libmpi')
