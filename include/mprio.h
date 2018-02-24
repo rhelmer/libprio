@@ -32,12 +32,14 @@ typedef const struct prio_server *const_PrioServer;
 typedef struct prio_packet_client *PrioPacketClient;
 typedef const struct prio_packet_client *const_PrioPacketClient;
 
-typedef struct prio_packet_verify *PrioPacketVerify;
-typedef const struct prio_packet_verify *const_PrioPacketVerify;
-
 typedef struct prio_total_share *PrioTotalShare;
 typedef const struct prio_total_share *const_PrioTotalShare;
 
+typedef struct prio_packet_verify1 *PrioPacketVerify1;
+typedef const struct prio_packet_verify1 *const_PrioPacketVerify1;
+
+typedef struct prio_packet_verify2 *PrioPacketVerify2;
+typedef const struct prio_packet_verify2 *const_PrioPacketVerify2;
 
 PrioConfig PrioConfig_defaultNew (void);
 int PrioConfig_numDataFields (const_PrioConfig cfg);
@@ -50,14 +52,6 @@ void PrioPacketClient_clear (PrioPacketClient p);
 PrioServer PrioServer_new (const_PrioConfig cfg);
 void PrioServer_clear (PrioServer s);
 
-PrioPacketVerify PrioServer_newPacketVerify (const_PrioPacketClient p);
-void PrioPacketVerify_clear (PrioPacketVerify p);
-
-int PrioServer_isValid (const_PrioServer s,
-    const_PrioPacketVerify pA,
-    const_PrioPacketVerify pB);
-int PrioServer_aggregate (PrioServer s, const_PrioPacketClient p);
-
 PrioTotalShare PrioServer_newTotalShare (const_PrioServer s);
 
 // Output must have enough space to store a vector with one entry
@@ -67,6 +61,15 @@ int PrioTotalShare_final (const_PrioConfig cfg, unsigned long *output,
 
 void PrioTotalShare_clear (PrioTotalShare t);
 
+/*
+PrioPacketVerify PrioServer_newPacketVerify (const_PrioPacketClient p);
+void PrioPacketVerify_clear (PrioPacketVerify p);
+
+int PrioServer_isValid (const_PrioServer s,
+    const_PrioPacketVerify pA,
+    const_PrioPacketVerify pB);
+int PrioServer_aggregate (PrioServer s, const_PrioPacketClient p);
+*/
 
 
 #endif /* __PRIO_H__ */
