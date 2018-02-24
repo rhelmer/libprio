@@ -15,27 +15,16 @@
  */
 
 
-#include <mprio.h>
-#include "mutest.h"
+#ifndef __SERVER_H__
+#define __SERVER_H__
 
-void 
-mu_test_client__new (void)
-{
-  PrioConfig cfg = PrioConfig_defaultNew();
-  mu_check (cfg);
+#include "mparray.h"
+#include "share.h"
 
-  const int ndata = PrioConfig_numDataFields (cfg);
-  bool data_items[ndata];
-  for (int i=0; i < ndata; i++) {
-    // Arbitrary data
-    data_items[i] = (i % 3 == 1) || (i % 5 == 3);
-  }
+struct prio_total_share {
+  struct mparray data_shares;
+};
 
-  PrioPacketClient pA, pB;
-  mu_check (PrioPacketClient_new (cfg, data_items, &pA, &pB) == PRIO_OKAY);
 
-  PrioPacketClient_clear (pA);
-  PrioPacketClient_clear (pB);
-  PrioConfig_clear (cfg);
-}
+#endif /* __SERVER_H__ */
 

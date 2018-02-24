@@ -19,27 +19,7 @@
 #include <mprio.h>
 
 #include "libmpi/mpi.h"
-#include "share.h"
-
-struct prio_packet_client {
-  struct beaver_triple triple;
-  mp_int *data_shares;
-};
-
-static int 
-init_data_shares (const_PrioConfig cfg, PrioPacketClient p)
-{
-  p->data_shares = calloc (cfg->num_data_fields, sizeof (mp_int));
-  if (!p->data_shares) 
-    return PRIO_ERROR;
-
-  for (int i=0; i<cfg->num_data_fields; i++) {
-    if (mp_init(&p->data_shares[i]) != MP_OKAY)
-      return PRIO_ERROR;
-  }
-
-  return PRIO_OKAY;
-}
+#include "client.h"
 
 int 
 PrioPacketClient_new (const_PrioConfig cfg, const bool *data_in,
@@ -66,9 +46,9 @@ PrioPacketClient_new (const_PrioConfig cfg, const bool *data_in,
   if ((error = triple_rand (cfg, &pA->triple, &pB->triple)) != PRIO_OKAY)
     return error;
 
-  if ((error = init_data_shares (cfg, pA)) != PRIO_OKAY)
+  if ((error = mparray_init (&pA->data_shares, cfg->num_data_fields)) != PRIO_OKAY)
     return PRIO_ERROR;
-  if ((error = init_data_shares (cfg, pB)) != PRIO_OKAY)
+  if ((error = mparray_init (&pB->data_shares, cfg->num_data_fields)) != PRIO_OKAY)
     return PRIO_ERROR;
 
   mp_int tmp;
@@ -78,7 +58,7 @@ PrioPacketClient_new (const_PrioConfig cfg, const bool *data_in,
   for (int i=0; i<cfg->num_data_fields; i++) {
     if ((error = mp_set_int (&tmp, data_in[i])) != MP_OKAY)
       return PRIO_ERROR;
-    if (share_int(cfg, &tmp, &pA->data_shares[i], &pB->data_shares[i]) != MP_OKAY)
+    if (share_int(cfg, &tmp, &pA->data_shares.data[i], &pB->data_shares.data[i]) != MP_OKAY)
       return PRIO_ERROR;
   }
 
@@ -88,13 +68,9 @@ PrioPacketClient_new (const_PrioConfig cfg, const bool *data_in,
 }
 
 void
-PrioPacketClient_clear (const_PrioConfig cfg, PrioPacketClient p)
+PrioPacketClient_clear (PrioPacketClient p)
 {
-  for (int i=0; i<cfg->num_data_fields; i++) {
-    mp_clear (&p->data_shares[i]);
-  }
-
-  free (p->data_shares);
+  mparray_clear (&p->data_shares);
   triple_clear (&p->triple);
   free (p);
 }

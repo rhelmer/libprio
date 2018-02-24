@@ -15,27 +15,27 @@
  */
 
 
-#include <mprio.h>
-#include "mutest.h"
+#ifndef __MPARRAY_H__
+#define __MPARRAY_H__
 
-void 
-mu_test_client__new (void)
-{
-  PrioConfig cfg = PrioConfig_defaultNew();
-  mu_check (cfg);
+#include "libmpi/mpi.h"
+#include "config.h"
 
-  const int ndata = PrioConfig_numDataFields (cfg);
-  bool data_items[ndata];
-  for (int i=0; i < ndata; i++) {
-    // Arbitrary data
-    data_items[i] = (i % 3 == 1) || (i % 5 == 3);
-  }
+struct mparray {
+  int len;
+  mp_int *data;
+};
 
-  PrioPacketClient pA, pB;
-  mu_check (PrioPacketClient_new (cfg, data_items, &pA, &pB) == PRIO_OKAY);
+int mparray_init (struct mparray *arr, int len);
 
-  PrioPacketClient_clear (pA);
-  PrioPacketClient_clear (pB);
-  PrioConfig_clear (cfg);
-}
+// Initializes dst and creates a duplicate of the array in src. 
+int mparray_dup (struct mparray *dst, const struct mparray *src);
+
+// For each index i into the array, set:
+//    dst[i] = dst[i] + to_add[i]   (modulo mod)
+int mparray_addmod (struct mparray *dst, const struct mparray *to_add, 
+    const mp_int *mod);
+void mparray_clear (struct mparray *arr);
+
+#endif /* __MPARRAY_H__ */
 

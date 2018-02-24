@@ -26,11 +26,17 @@
 typedef struct prio_config *PrioConfig;
 typedef const struct prio_config *const_PrioConfig;
 
+typedef struct prio_server *PrioServer;
+typedef const struct prio_server *const_PrioServer;
+
 typedef struct prio_packet_client *PrioPacketClient;
 typedef const struct prio_packet_client *const_PrioPacketClient;
 
-typedef struct prio_packet_server *PrioPacketServer;
-typedef const struct prio_packet_server *const_PrioPacketServer;
+typedef struct prio_packet_verify *PrioPacketVerify;
+typedef const struct prio_packet_verify *const_PrioPacketVerify;
+
+typedef struct prio_total_share *PrioTotalShare;
+typedef const struct prio_total_share *const_PrioTotalShare;
 
 
 PrioConfig PrioConfig_defaultNew (void);
@@ -39,15 +45,28 @@ void PrioConfig_clear (PrioConfig cfg);
 
 int PrioPacketClient_new (const_PrioConfig cfg, const bool *data_in,
     PrioPacketClient *for_server_a, PrioPacketClient *for_server_b);
-void PrioPacketClient_clear (const_PrioConfig cfg, PrioPacketClient p);
+void PrioPacketClient_clear (PrioPacketClient p);
 
-PrioPacketServer PrioPacketServer_new (const_PrioConfig cfg, 
-    const_PrioPacketClient for_server);
-void PrioPacketServer_clear(PrioPacketServer p);
+PrioServer PrioServer_new (const_PrioConfig cfg);
+void PrioServer_clear (PrioServer s);
 
-int PrioServer_isValid (const_PrioConfig cfg, 
-    const_PrioPacketServer pA,
-    const_PrioPacketServer pB);
+PrioPacketVerify PrioServer_newPacketVerify (const_PrioPacketClient p);
+void PrioPacketVerify_clear (PrioPacketVerify p);
+
+int PrioServer_isValid (const_PrioServer s,
+    const_PrioPacketVerify pA,
+    const_PrioPacketVerify pB);
+int PrioServer_aggregate (PrioServer s, const_PrioPacketClient p);
+
+PrioTotalShare PrioServer_newTotalShare (const_PrioServer s);
+
+// Output must have enough space to store a vector with one entry
+// per data field.
+int PrioTotalShare_final (const_PrioConfig cfg, unsigned long *output,
+    const_PrioTotalShare tA, const_PrioTotalShare tB);
+
+void PrioTotalShare_clear (PrioTotalShare t);
+
 
 
 #endif /* __PRIO_H__ */
