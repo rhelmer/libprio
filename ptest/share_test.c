@@ -15,32 +15,42 @@
  */
 
 
+#include <mprio.h>
+
 #include "libmpi/mpi.h"
+#include "libmprio/config.h"
+#include "libmprio/share.h"
 #include "mutest.h"
 
-
 void 
-mu_test_mpi__add (void) 
+test_share (void)
 {
-  mp_int a;
-  mp_int b;
-  mp_int c;
+  struct beaver_triple t1, t2;
+  mu_check (triple_new (&t1) == PRIO_OKAY);
+  mu_check (triple_new (&t2) == PRIO_OKAY);
 
+  PrioConfig cfg = PrioConfig_defaultNew();
+  mu_check (cfg);
+
+  mu_check (triple_rand (cfg, &t1, &t2) == PRIO_OKAY);
+
+  mp_int a, b, c;
   mu_check (mp_init (&a) == MP_OKAY);
   mu_check (mp_init (&b) == MP_OKAY);
   mu_check (mp_init (&c) == MP_OKAY);
 
-  mp_set (&a, 10);
-  mp_set (&b, 7);
-  mp_add (&a, &b, &c);
-
-  mp_set (&a, 17);
+  mu_check (mp_addmod (&t1.a, &t2.a, &cfg->modulus, &a) == MP_OKAY);
+  mu_check (mp_addmod (&t1.b, &t2.b, &cfg->modulus, &b) == MP_OKAY);
+  mu_check (mp_addmod (&t1.c, &t2.c, &cfg->modulus, &c) == MP_OKAY);
+  mu_check (mp_mulmod (&t1.a, &t2.b, &cfg->modulus, &a) == MP_OKAY);
   mu_check (mp_cmp (&a, &c) == 0);
 
   mp_clear (&a);
   mp_clear (&b);
   mp_clear (&c);
+
+  PrioConfig_clear (cfg);
+  triple_clear (&t1);
+  triple_clear (&t2);
 }
-
-
 

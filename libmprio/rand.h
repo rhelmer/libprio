@@ -21,6 +21,8 @@
 #include "libmpi/mpi.h"
 
 int rand_init (void);
+void rand_clear (void);
+
 int rand_int (mp_int *out, const mp_int *max);
 
 #endif /* __RAND_H__ */

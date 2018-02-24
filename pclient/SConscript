@@ -9,7 +9,7 @@ src = [
 ]
 
 libs = [
-  "libprio",
+  "libmprio",
 ]
 
 prio_env.Append(LIBS = libs)

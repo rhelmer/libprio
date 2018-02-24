@@ -5,11 +5,10 @@ Import('env')
 mpi_env = env.Clone()
 mpi_env.Replace(CFLAGS = [ "-O2", "-pedantic", "-Wall"])
 
-if mpi_env["PLATFORM"] == "darwin":
-  mpi_env.Append(CFLAGS = [
-    "-Wno-unknown-pragmas",
-    "-Wno-parentheses-equality",
-    "-Wno-unused-variable"])
+mpi_env.Append(CFLAGS = [
+  "-Wno-unknown-pragmas",
+  "-Wno-parentheses-equality",
+  "-Wno-unused-variable"])
 
 
 src = [

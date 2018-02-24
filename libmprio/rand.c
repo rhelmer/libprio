@@ -14,35 +14,33 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "debug.h"
-#include "rand.h"
-
-#include "include/prio.h"
-
 #include <limits.h>
 #include <nss/nss.h>
 #include <nss/pk11pub.h>
+#include <nspr/prinit.h>
+#include <mprio.h>
 
-static bool nss_initialized = false;
+#include "debug.h"
+#include "rand.h"
+
 
 int
 rand_init (void)
 {
-  int error = NSS_InitReadWrite (".");
+  int error = NSS_NoDB_Init (".");
   if (error != SECSuccess) 
     return PRIO_ERROR;
 
   // For this example, we don't use database passwords
   PK11_InitPin(PK11_GetInternalKeySlot(), "", "");
 
-  nss_initialized = true;
   return PRIO_OKAY;
 }
 
 int 
 rand_int (mp_int *out, const mp_int *max)
 {
-  if (!nss_initialized) {
+  if (!NSS_IsInitialized ()) {
     PRIO_DEBUG ("NSS not initialized. Call rand_init() first.");
     return PRIO_ERROR;
   }
@@ -85,4 +83,10 @@ rand_int (mp_int *out, const mp_int *max)
   return 0;
 }
 
+void
+rand_clear (void)
+{
+  NSS_Shutdown ();
+  PR_Cleanup ();
+}
 

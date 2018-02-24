@@ -14,34 +14,29 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "libmpi/mpi.h"
-#include "include/prio.h"
 
-#include "triple.h"
+#include <mprio.h>
+#include "mutest.h"
 
-
-int 
-prio_client_packet_new (const struct prio_config *cfg, const bool *data_in,
-    struct prio_packet_client *for_server_a, struct prio_packet_client *for_server_b)
+void 
+mu_test_client__new (void)
 {
-  int error;
+  printf("Her");
+  PrioConfig cfg = PrioConfig_defaultNew();
+  mu_check (cfg);
 
-  if ((error = triple_new (for_server_a->triple)) != PRIO_OKAY)
-    return error;
-  if ((error = triple_new (for_server_b->triple)) != PRIO_OKAY)
-    return error;
-
-  triple_rand (cfg, for_server_a->triple, for_server_b->triple);
-
-  if(data_in[0]) {
+  const int ndata = PrioConfig_numDataFields (cfg);
+  bool data_items[ndata];
+  for (int i=0; i < ndata; i++) {
+    // Arbitrary data
+    data_items[i] = (i % 3 == 1) || (i % 5 == 3);
   }
 
-  return 0;
-}
+  PrioPacketClient pA, pB;
+  mu_check (PrioPacketClient_new (cfg, data_items, &pA, &pB) == PRIO_OKAY);
 
-void
-prio_client_packet_clear (struct prio_packet_client *p)
-{
-  triple_clear (p->triple);
+  PrioPacketClient_clear (cfg, pA);
+  PrioPacketClient_clear (cfg, pB);
+  PrioConfig_clear (cfg);
 }
 

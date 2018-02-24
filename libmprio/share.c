@@ -14,11 +14,26 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "include/prio.h"
+#include <mprio.h>
 
 #include "config.h"
 #include "rand.h"
-#include "triple.h"
+#include "share.h"
+
+
+int 
+share_int (const struct prio_config *cfg, const mp_int *src, 
+    mp_int *shareA, mp_int *shareB)
+{
+  int error;
+  if ((error = rand_int (shareA, &cfg->modulus)) != PRIO_OKAY)
+    return error;
+
+  if ((error = mp_submod (src, shareA, &cfg->modulus, shareB)) != PRIO_OKAY)
+    return error;
+
+  return PRIO_OKAY;
+}
 
 int 
 triple_new (struct beaver_triple *triple)
@@ -50,6 +65,8 @@ triple_rand (const struct prio_config *cfg,
     struct beaver_triple *triple_2)
 {
   int error;
+
+  // TODO: Can shorten this code using share_int()
 
   // We need that
   //   (a1 + a2)(b1 + b2) = c1 + c2   (mod p) 

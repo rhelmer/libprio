@@ -14,17 +14,39 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <stdlib.h>
+#include <mprio.h>
 
-#ifndef __CONFIG_H__
-#define __CONFIG_H__
-
-#include "libmpi/mpi.h"
-
-struct prio_config {
-  int num_data_fields;
-  mp_int modulus;
-};
+#include "config.h"
+#include "rand.h"
 
 
-#endif /* __CONFIG_H__ */
+PrioConfig 
+PrioConfig_defaultNew (void)
+{
+  PrioConfig cfg = malloc (sizeof (*cfg));
+  if (!cfg)
+    return NULL;
 
+  if (mp_init (&cfg->modulus) != MP_OKAY)
+    return NULL;
+
+  if ((mp_read_radix(&cfg->modulus, "8000000000000000080001", 16) != MP_OKAY))
+    return NULL;
+
+  cfg->num_data_fields = 128;
+  return cfg;
+}
+
+void 
+PrioConfig_clear(PrioConfig cfg)
+{
+  mp_clear (&cfg->modulus);
+  free (cfg);
+}
+
+int 
+PrioConfig_numDataFields (const_PrioConfig cfg)
+{
+  return cfg->num_data_fields;
+}

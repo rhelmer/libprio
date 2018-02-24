@@ -6,8 +6,9 @@ penv = env.Clone()
 
 src = [
     "client.c",
+    "config.c",
     "rand.c",
-    "triple.c",
+    "share.c",
 ]
 
 libs = [
@@ -17,5 +18,5 @@ libs = [
 penv.Append(CFLAGS = ['-DMP_IOFUNC'])
 
 penv.Append(LIBS = libs)
-penv.StaticLibrary("libprio", src)
+penv.StaticLibrary("libmprio", src)
 

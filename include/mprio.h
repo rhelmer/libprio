@@ -14,7 +14,6 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-
 #ifndef __PRIO_H__
 #define __PRIO_H__
 
@@ -24,37 +23,31 @@
 #define PRIO_OKAY 0
 #define PRIO_ERROR 1
 
-struct prio_config; 
-struct beaver_triple; 
-struct prio_packet_client;
-struct prio_packet_server;
+typedef struct prio_config *PrioConfig;
+typedef const struct prio_config *const_PrioConfig;
 
-/*{
-  mp_int modulus;
-  int data_len;
-};
-*/
+typedef struct prio_packet_client *PrioPacketClient;
+typedef const struct prio_packet_client *const_PrioPacketClient;
 
-struct prio_packet_client {
-  struct beaver_triple *triple;
-};
-
-struct prio_packet_server {
-};
+typedef struct prio_packet_server *PrioPacketServer;
+typedef const struct prio_packet_server *const_PrioPacketServer;
 
 
-int prio_client_packet_new (const struct prio_config *c, const bool *data_in,
-    struct prio_packet_client *for_server_a, struct prio_packet_client *for_server_b);
-void prio_client_packet_clear (struct prio_packet_client *c);
+PrioConfig PrioConfig_defaultNew (void);
+int PrioConfig_numDataFields (const_PrioConfig cfg);
+void PrioConfig_clear (PrioConfig cfg);
 
-int prio_server_packet_new (const struct prio_config *c, 
-    const struct prio_packet_client *for_server,
-    struct prio_packet_server *cor);
-void prio_server_packet_clear(struct prio_packet_server *cor);
+int PrioPacketClient_new (const_PrioConfig cfg, const bool *data_in,
+    PrioPacketClient *for_server_a, PrioPacketClient *for_server_b);
+void PrioPacketClient_clear (const_PrioConfig cfg, PrioPacketClient p);
 
-int prio_server_valid (const struct prio_config *c, 
-    const struct prio_packet_server *corA,
-    const struct prio_packet_server *corB);
+PrioPacketServer PrioPacketServer_new (const_PrioConfig cfg, 
+    const_PrioPacketClient for_server);
+void PrioPacketServer_clear(PrioPacketServer p);
+
+int PrioServer_isValid (const_PrioConfig cfg, 
+    const_PrioPacketServer pA,
+    const_PrioPacketServer pB);
 
 
 #endif /* __PRIO_H__ */

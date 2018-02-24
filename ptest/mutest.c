@@ -13,7 +13,7 @@
  * Please, read the README file for more details.
  */
 
-#include "libprio/rand.h" 
+#include "libmprio/rand.h" 
 #include "mutest.h" /* MU_* constants, mu_print() */
 #include <stdio.h> /* printf(), fprintf() */
 #include <string.h> /* strncmp() */
@@ -74,6 +74,8 @@ int main(int argc, char* argv[]) {
 	parse_args(argc, argv);
 
 	mu_run_suites();
+
+  rand_clear ();
 
 	mu_print(MU_SUMMARY, "\n"
 			"Tests done:\n"

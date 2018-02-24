@@ -15,32 +15,31 @@
  */
 
 
+#ifndef __SHARE_H__
+#define __SHARE_H__
+
 #include "libmpi/mpi.h"
-#include "mutest.h"
+#include "config.h"
 
-
-void 
-mu_test_mpi__add (void) 
-{
+struct beaver_triple {
   mp_int a;
   mp_int b;
   mp_int c;
-
-  mu_check (mp_init (&a) == MP_OKAY);
-  mu_check (mp_init (&b) == MP_OKAY);
-  mu_check (mp_init (&c) == MP_OKAY);
-
-  mp_set (&a, 10);
-  mp_set (&b, 7);
-  mp_add (&a, &b, &c);
-
-  mp_set (&a, 17);
-  mu_check (mp_cmp (&a, &c) == 0);
-
-  mp_clear (&a);
-  mp_clear (&b);
-  mp_clear (&c);
-}
+};
 
 
+/*
+ * Use secret sharing to split the int src into two shares.
+ */
+int share_int (const struct prio_config *cfg, const mp_int *src, 
+    mp_int *shareA, mp_int *shareB);
+
+int triple_new (struct beaver_triple *triple);
+void triple_clear (struct beaver_triple *triple);
+
+int triple_rand (const struct prio_config *cfg, 
+    struct beaver_triple *triple_a, 
+    struct beaver_triple *triple_b);
+
+#endif /* __SHARE_H__ */
 

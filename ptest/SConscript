@@ -6,15 +6,17 @@ prio_env = env.Clone()
 
 test_srcs = [
     "mutest.c",
+    "client_test.c",
     "example_test.c",
-    "rand_test.c",
     "mpi_test.c",
+    "rand_test.c",
+    "share_test.c",
 ]
 
 libs = [
   "nss3",
   "libmpi",
-  "libprio",
+  "libmprio",
 ]
 
 # Run the mutest script to generate the test harness code

@@ -16,7 +16,7 @@
 
 
 #include "libmpi/mpi.h"
-#include "libprio/rand.h"
+#include "libmprio/rand.h"
 #include "mutest.h"
 
 void 

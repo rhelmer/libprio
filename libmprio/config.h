@@ -15,23 +15,17 @@
  */
 
 
-#ifndef __TRIPLE_H__
-#define __TRIPLE_H__
+#ifndef __CONFIG_H__
+#define __CONFIG_H__
 
 #include "libmpi/mpi.h"
 
-struct beaver_triple {
-  mp_int a;
-  mp_int b;
-  mp_int c;
+struct prio_config {
+  int num_data_fields;
+  mp_int modulus;
 };
 
-int triple_new (struct beaver_triple *triple);
-void triple_clear (struct beaver_triple *triple);
 
-int triple_rand (const struct prio_config *cfg, 
-    struct beaver_triple *triple_a, 
-    struct beaver_triple *triple_b);
 
-#endif /* __TRIPLE_H__ */
+#endif /* __CONFIG_H__ */
 
