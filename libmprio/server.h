@@ -25,6 +25,12 @@ struct prio_total_share {
   struct mparray data_shares;
 };
 
+struct prio_server {
+  const_PrioConfig cfg;
+  struct mparray data_shares;
+};
+
+
 
 #endif /* __SERVER_H__ */
 

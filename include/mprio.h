@@ -35,11 +35,15 @@ typedef const struct prio_packet_client *const_PrioPacketClient;
 typedef struct prio_total_share *PrioTotalShare;
 typedef const struct prio_total_share *const_PrioTotalShare;
 
+typedef struct prio_verifier *PrioVerifier;
+typedef const struct prio_verifier *const_PrioVerifier;
+
 typedef struct prio_packet_verify1 *PrioPacketVerify1;
 typedef const struct prio_packet_verify1 *const_PrioPacketVerify1;
 
 typedef struct prio_packet_verify2 *PrioPacketVerify2;
 typedef const struct prio_packet_verify2 *const_PrioPacketVerify2;
+
 
 PrioConfig PrioConfig_defaultNew (void);
 int PrioConfig_numDataFields (const_PrioConfig cfg);
@@ -52,25 +56,28 @@ void PrioPacketClient_clear (PrioPacketClient p);
 PrioServer PrioServer_new (const_PrioConfig cfg);
 void PrioServer_clear (PrioServer s);
 
-PrioTotalShare PrioServer_newTotalShare (const_PrioServer s);
+int PrioServer_aggregate (PrioServer s, const_PrioPacketClient p);
+
+PrioTotalShare PrioTotalShare_new (const_PrioServer s);
+void PrioTotalShare_clear (PrioTotalShare t);
 
 // Output must have enough space to store a vector with one entry
 // per data field.
 int PrioTotalShare_final (const_PrioConfig cfg, unsigned long *output,
     const_PrioTotalShare tA, const_PrioTotalShare tB);
 
-void PrioTotalShare_clear (PrioTotalShare t);
 
-/*
-PrioPacketVerify PrioServer_newPacketVerify (const_PrioPacketClient p);
-void PrioPacketVerify_clear (PrioPacketVerify p);
+PrioVerifier PrioVerifier_new (PrioServer s, const_PrioPacketClient p);
+void PrioVerifier_clear (PrioVerifier v);
 
-int PrioServer_isValid (const_PrioServer s,
-    const_PrioPacketVerify pA,
-    const_PrioPacketVerify pB);
-int PrioServer_aggregate (PrioServer s, const_PrioPacketClient p);
-*/
+PrioPacketVerify1 PrioVerifier_packet1 (const_PrioVerifier v);
+void PrioPacketVerify1_clear (PrioPacketVerify1 p);
 
+PrioPacketVerify2 PrioVerifier_packet2 (const_PrioVerifier v,
+    PrioPacketVerify1 pA, PrioPacketVerify1 pB);
+int PrioVerifier_isValid (const_PrioVerifier v,
+    PrioPacketVerify2 pA, PrioPacketVerify2 pB);
+void PrioPacketVerify2_clear (PrioPacketVerify2 p);
 
 #endif /* __PRIO_H__ */
 

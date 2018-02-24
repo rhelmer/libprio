@@ -68,8 +68,8 @@ test_client_agg (int nclients)
     PrioPacketClient_clear (pB);
   }
 
-  PrioTotalShare tA = PrioServer_newTotalShare (sA);
-  PrioTotalShare tB = PrioServer_newTotalShare (sB);
+  PrioTotalShare tA = PrioTotalShare_new (sA);
+  PrioTotalShare tB = PrioTotalShare_new (sB);
   mu_check (tA);
   mu_check (tB);
 

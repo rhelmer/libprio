@@ -23,12 +23,6 @@
 #include "mparray.h"
 #include "server.h"
 
-struct prio_server {
-  const_PrioConfig cfg;
-  struct mparray data_shares;
-};
-
-
 PrioServer 
 PrioServer_new (const_PrioConfig cfg)
 {
@@ -49,14 +43,6 @@ PrioServer_clear (PrioServer s)
   free(s);
 }
 
-//PrioPacketVerify PrioServer_newPacketVerify (const_PrioPacketClient p);
-//void PrioPacketVerify_clear (PrioPacketVerify p);
-
-//int PrioServer_isValid (const_PrioServer s,
-//    const_PrioPacketVerify pA,
-//    const_PrioPacketVerify pB);
-
-
 int 
 PrioServer_aggregate (PrioServer s, const_PrioPacketClient p)
 {
@@ -64,7 +50,7 @@ PrioServer_aggregate (PrioServer s, const_PrioPacketClient p)
 }
 
 PrioTotalShare 
-PrioServer_newTotalShare (const_PrioServer s)
+PrioTotalShare_new (const_PrioServer s)
 {
   PrioTotalShare t = malloc (sizeof (*t));
   if (!t) return NULL;
@@ -105,4 +91,6 @@ PrioTotalShare_clear (PrioTotalShare t)
   mparray_clear (&t->data_shares);
   free (t);
 }
+
+
 
