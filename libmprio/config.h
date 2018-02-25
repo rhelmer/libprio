@@ -19,12 +19,18 @@
 #define __CONFIG_H__
 
 #include "libmpi/mpi.h"
+#include "mparray.h"
+
+static const int DefaultNumDataFields = 128;
 
 struct prio_config {
   int num_data_fields;
   mp_int modulus;
-};
 
+  int n_roots;
+  struct mparray roots;
+  struct mparray rootsInv;
+};
 
 
 #endif /* __CONFIG_H__ */

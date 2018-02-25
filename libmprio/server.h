@@ -30,7 +30,17 @@ struct prio_server {
   struct mparray data_shares;
 };
 
+struct prio_verifier {
 
+};
+
+struct prio_packet_verify1 {
+
+};
+
+struct prio_packet_verify2 {
+
+};
 
 #endif /* __SERVER_H__ */
 

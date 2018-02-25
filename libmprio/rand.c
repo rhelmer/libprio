@@ -78,7 +78,14 @@ rand_int (mp_int *out, const mp_int *max)
     // Use [inefficient] rejection sampling to find a number
     // strictly less than max.
     // TODO: Optimize to make fewer iterations. 
+    //mp_print (out, stderr);
+    //puts("");
+    //mp_print (max, stderr);
+    //puts("");
+    //puts("");
   } while (mp_cmp (out, max) != -1);
+
+  //puts("DONE!");
 
   return 0;
 }

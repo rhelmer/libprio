@@ -8,6 +8,7 @@ test_srcs = [
     "mutest.c",
     "client_test.c",
     "example_test.c",
+    "fft_test.c",
     "mpi_test.c",
     "rand_test.c",
     "share_test.c",
@@ -24,6 +25,9 @@ bld = Builder(action = 'ptest/mkmutest ptest/mutest.h $SOURCES | $CC -c -xc -o $
 prio_env.Append(BUILDERS = {'MkMutest' : bld})
 
 prio_env.Append(LIBS = libs)
+
+# Enable mpi print
+prio_env.Append(CFLAGS = ['-DMP_IOFUNC'])
 
 # Copy the mutest scripts to the build dir
 prio_env.Install("mkmutest")

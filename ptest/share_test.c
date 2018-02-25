@@ -23,7 +23,7 @@
 #include "mutest.h"
 
 void 
-test_share (void)
+mu_test_share (void)
 {
   struct beaver_triple t1, t2;
   mu_check (triple_new (&t1) == PRIO_OKAY);
@@ -42,7 +42,7 @@ test_share (void)
   mu_check (mp_addmod (&t1.a, &t2.a, &cfg->modulus, &a) == MP_OKAY);
   mu_check (mp_addmod (&t1.b, &t2.b, &cfg->modulus, &b) == MP_OKAY);
   mu_check (mp_addmod (&t1.c, &t2.c, &cfg->modulus, &c) == MP_OKAY);
-  mu_check (mp_mulmod (&t1.a, &t2.b, &cfg->modulus, &a) == MP_OKAY);
+  mu_check (mp_mulmod (&a, &b, &cfg->modulus, &a) == MP_OKAY);
   mu_check (mp_cmp (&a, &c) == 0);
 
   mp_clear (&a);

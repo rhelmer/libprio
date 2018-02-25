@@ -92,5 +92,17 @@ PrioTotalShare_clear (PrioTotalShare t)
   free (t);
 }
 
+/*
+PrioVerifier PrioVerifier_new (PrioServer s, const_PrioPacketClient p);
+void PrioVerifier_clear (PrioVerifier v);
 
+PrioPacketVerify1 PrioVerifier_packet1 (const_PrioVerifier v);
+void PrioPacketVerify1_clear (PrioPacketVerify1 p);
+
+PrioPacketVerify2 PrioVerifier_packet2 (const_PrioVerifier v,
+    PrioPacketVerify1 pA, PrioPacketVerify1 pB);
+int PrioVerifier_isValid (const_PrioVerifier v,
+    PrioPacketVerify2 pA, PrioPacketVerify2 pB);
+void PrioPacketVerify2_clear (PrioPacketVerify2 p);
+*/
 

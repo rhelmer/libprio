@@ -19,7 +19,6 @@
 #define __MPARRAY_H__
 
 #include "libmpi/mpi.h"
-#include "config.h"
 
 struct mparray {
   int len;

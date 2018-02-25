@@ -1,3 +1,6 @@
 
-
+* Use PRG to compress shares
+* Address TODO notes throughout code
+* Free memory on errors
+* Test error handling
 

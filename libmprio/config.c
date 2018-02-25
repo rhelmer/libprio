@@ -18,8 +18,19 @@
 #include <mprio.h>
 
 #include "config.h"
+#include "params.h"
 #include "rand.h"
 
+static int
+initialize_roots (struct mparray *arr, const char *values[])
+{
+  for (int i=0; i < arr->len; i++) {
+    if ((mp_read_radix (&arr->data[i], values[i], 16) != MP_OKAY)) 
+      return PRIO_ERROR;
+  }
+  
+  return PRIO_OKAY;
+}
 
 PrioConfig 
 PrioConfig_defaultNew (void)
@@ -31,16 +42,34 @@ PrioConfig_defaultNew (void)
   if (mp_init (&cfg->modulus) != MP_OKAY)
     return NULL;
 
-  if ((mp_read_radix(&cfg->modulus, "8000000000000000080001", 16) != MP_OKAY))
+  if ((mp_read_radix (&cfg->modulus, Modulus, 16) != MP_OKAY)) 
     return NULL;
 
-  cfg->num_data_fields = 128;
+  cfg->num_data_fields = DefaultNumDataFields;
+  cfg->n_roots = 1 << Generator2Order;
+  if (cfg->num_data_fields >= cfg->n_roots)
+    return NULL;
+
+  if ((mparray_init (&cfg->roots, cfg->n_roots) != MP_OKAY)) 
+    return NULL;
+
+  if ((initialize_roots (&cfg->roots, Roots) != MP_OKAY)) 
+    return NULL;
+
+  if ((mparray_init (&cfg->rootsInv, cfg->n_roots) != MP_OKAY)) 
+    return NULL;
+
+  if ((initialize_roots (&cfg->rootsInv, RootsInv) != MP_OKAY)) 
+    return NULL;
+
   return cfg;
 }
 
 void 
 PrioConfig_clear(PrioConfig cfg)
 {
+  mparray_clear (&cfg->roots);
+  mparray_clear (&cfg->rootsInv);
   mp_clear (&cfg->modulus);
   free (cfg);
 }
