@@ -92,8 +92,12 @@ PrioTotalShare_clear (PrioTotalShare t)
   free (t);
 }
 
+
+
+
+/*
 PrioVerifier PrioVerifier_new (PrioServer s, const_PrioPacketClient p, 
-    char shared_secret[16])
+    ServerSharedSecret secret)
 {
   PrioVerifier v = malloc (sizeof *v);
   if (!v) return NULL;
@@ -109,6 +113,7 @@ PrioVerifier PrioVerifier_new (PrioServer s, const_PrioPacketClient p,
 
   // Check that all values that should be zero are zero
 }
+*/
 
 void PrioVerifier_clear (PrioVerifier v)
 {

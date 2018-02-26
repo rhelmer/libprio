@@ -128,11 +128,16 @@ share_polynomials (const_PrioConfig cfg, const struct mparray *data_in,
           &evals_g_2N, &g0)) != PRIO_OKAY)
     return error;
 
+  // Must send to each server a share of the points
+  //    f(0),   g(0),   and   h(0) = f(0)*g(0)
+  if ((error = share_int (cfg, &f0, &pA->f0_share, &pB->f0_share)) != PRIO_OKAY)
+    return error;
+  if ((error = share_int (cfg, &f0, &pA->g0_share, &pB->g0_share)) != PRIO_OKAY)
+    return error;
+
   if (mp_mulmod (&f0, &g0, mod, &f0) != MP_OKAY)
     return PRIO_ERROR;
 
-  // Must send to each server a share of the point
-  //    h(0) = f(0)*g(0)
   if ((error = share_int (cfg, &f0, &pA->h0_share, &pB->h0_share)) != PRIO_OKAY)
     return error;
 
@@ -165,6 +170,29 @@ share_polynomials (const_PrioConfig cfg, const struct mparray *data_in,
   return PRIO_OKAY;
 }
 
+static int
+init_objects(PrioPacketClient *ptr)
+{
+  if (!ptr)
+    return PRIO_ERROR; 
+
+  *ptr = malloc (sizeof (**ptr));
+  if (!*ptr) return PRIO_ERROR;
+
+  int error;
+  PrioPacketClient p = *ptr;
+  if ((error = triple_new (&p->triple)) != PRIO_OKAY)
+    return error;
+
+  if (mp_init (&p->f0_share) != MP_OKAY)
+    return PRIO_ERROR;
+  if (mp_init (&p->g0_share) != MP_OKAY)
+    return PRIO_ERROR;
+  if (mp_init (&p->h0_share) != MP_OKAY)
+    return PRIO_ERROR;
+
+  return PRIO_OKAY;
+}
 
 int 
 PrioPacketClient_new (const_PrioConfig cfg, const bool *data_in,
@@ -172,26 +200,15 @@ PrioPacketClient_new (const_PrioConfig cfg, const bool *data_in,
 {
   int error;
 
-  if (!data_in || !ptrA || !ptrB)
-    return PRIO_ERROR; 
+  if (!data_in) return PRIO_ERROR; 
 
-  *ptrA = malloc (sizeof (**ptrA));
-  if (!*ptrA) return PRIO_ERROR;
-  *ptrB = malloc (sizeof (**ptrB));
-  if (!*ptrB) return PRIO_ERROR;
+  if ((error = init_objects (ptrA)) != PRIO_OKAY)
+    return error;
+  if ((error = init_objects (ptrB)) != PRIO_OKAY)
+    return error;
 
   PrioPacketClient pA = *ptrA;
   PrioPacketClient pB = *ptrB;
-
-  if ((error = triple_new (&pA->triple)) != PRIO_OKAY)
-    return error;
-  if ((error = triple_new (&pB->triple)) != PRIO_OKAY)
-    return error;
-
-  if (mp_init (&pA->h0_share) != MP_OKAY)
-    return PRIO_ERROR;
-  if (mp_init (&pB->h0_share) != MP_OKAY)
-    return PRIO_ERROR;
 
   if ((error = triple_rand (cfg, &pA->triple, &pB->triple)) != PRIO_OKAY)
     return error;
@@ -219,6 +236,8 @@ PrioPacketClient_clear (PrioPacketClient p)
   mparray_clear (&p->h_coeffs);
   mparray_clear (&p->data_shares);
   triple_clear (&p->triple);
+  mp_clear (&p->f0_share);
+  mp_clear (&p->g0_share);
   mp_clear (&p->h0_share);
   free (p);
 }

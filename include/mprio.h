@@ -20,8 +20,18 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+/* The probability that a cheating client gets caught
+ * is roughly:
+ *     1 - 2*num_data_fields * 2^{-8*SOUNDNESS_PARAM}, 
+ * where num_data_fields is the size of each client packet.
+ * Setting this value to 20 is very conservative.
+ */
+#define SOUNDESS_PARAM 20
+
 #define PRIO_OKAY 0
 #define PRIO_ERROR 1
+
+typedef const char ServerSharedSecret[SOUNDESS_PARAM];
 
 typedef struct prio_config *PrioConfig;
 typedef const struct prio_config *const_PrioConfig;
@@ -70,7 +80,7 @@ int PrioTotalShare_final (const_PrioConfig cfg, unsigned long *output,
 // shared_secret is a secret value shared between the two 
 // verifying servers.
 PrioVerifier PrioVerifier_new (PrioServer s, const_PrioPacketClient p,
-    char shared_secret[16]);
+    ServerSharedSecret secret);
 void PrioVerifier_clear (PrioVerifier v);
 
 PrioPacketVerify1 PrioVerifier_packet1 (const_PrioVerifier v);
