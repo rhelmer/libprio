@@ -20,19 +20,7 @@
 #include "config.h"
 #include "params.h"
 #include "rand.h"
-
-int
-next_power_of_two (int val)
-{
-  int i = val;
-  int out = 0;
-  for ( ; i > 0; i >>= 1) {
-    out++;
-  }
-
-  int pow = 1 << out;
-  return (pow > 1 && pow/2 == val) ? val : pow;
-} 
+#include "util.h"
 
 
 static int
@@ -59,25 +47,17 @@ PrioConfig_defaultNew (void)
   if (mp_init (&cfg->modulus) != MP_OKAY)
     return NULL;
 
-  if ((mp_read_radix (&cfg->modulus, Modulus, 16) != MP_OKAY)) 
-    return NULL;
+  MP_CHECKN (mp_read_radix (&cfg->modulus, Modulus, 16)); 
 
   cfg->num_data_fields = DefaultNumDataFields;
   cfg->n_roots = 1 << Generator2Order;
   if (cfg->num_data_fields >= cfg->n_roots)
     return NULL;
 
-  if ((mparray_init (&cfg->roots, cfg->n_roots) != MP_OKAY)) 
-    return NULL;
-
-  if ((initialize_roots (&cfg->roots, Roots) != MP_OKAY)) 
-    return NULL;
-
-  if ((mparray_init (&cfg->rootsInv, cfg->n_roots) != MP_OKAY)) 
-    return NULL;
-
-  if ((initialize_roots (&cfg->rootsInv, RootsInv) != MP_OKAY)) 
-    return NULL;
+  MP_CHECKN (mparray_init (&cfg->roots, cfg->n_roots)); 
+  MP_CHECKN (initialize_roots (&cfg->roots, Roots)); 
+  MP_CHECKN (mparray_init (&cfg->rootsInv, cfg->n_roots)); 
+  MP_CHECKN (initialize_roots (&cfg->rootsInv, RootsInv)); 
 
   return cfg;
 }

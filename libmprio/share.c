@@ -19,6 +19,7 @@
 #include "config.h"
 #include "rand.h"
 #include "share.h"
+#include "util.h"
 
 
 int 
@@ -26,11 +27,8 @@ share_int (const struct prio_config *cfg, const mp_int *src,
     mp_int *shareA, mp_int *shareB)
 {
   int error;
-  if ((error = rand_int (shareA, &cfg->modulus)) != PRIO_OKAY)
-    return error;
-
-  if ((error = mp_submod (src, shareA, &cfg->modulus, shareB)) != PRIO_OKAY)
-    return error;
+  P_CHECK (rand_int (shareA, &cfg->modulus)); 
+  MP_CHECK (mp_submod (src, shareA, &cfg->modulus, shareB));
 
   return PRIO_OKAY;
 }
@@ -38,14 +36,9 @@ share_int (const struct prio_config *cfg, const mp_int *src,
 int 
 triple_new (struct beaver_triple *triple)
 {
-  int error;
-
-  if ((error = mp_init (&triple->a)) != MP_OKAY)
-    return error;
-  if ((error = mp_init (&triple->b)) != MP_OKAY)
-    return error;
-  if ((error = mp_init (&triple->c)) != MP_OKAY)
-    return error;
+  MP_CHECK (mp_init (&triple->a)); 
+  MP_CHECK (mp_init (&triple->b)); 
+  MP_CHECK (mp_init (&triple->c)); 
 
   return PRIO_OKAY;
 }
@@ -70,37 +63,28 @@ triple_rand (const struct prio_config *cfg,
 
   // We need that
   //   (a1 + a2)(b1 + b2) = c1 + c2   (mod p) 
-  if ((error = rand_int (&triple_1->a, &cfg->modulus)) != PRIO_OKAY)
-    return error;
-  if ((error = rand_int (&triple_1->b, &cfg->modulus)) != PRIO_OKAY)
-    return error;
-  if ((error = rand_int (&triple_2->a, &cfg->modulus)) != PRIO_OKAY)
-    return error;
-  if ((error = rand_int (&triple_2->b, &cfg->modulus)) != PRIO_OKAY)
-    return error;
+  P_CHECK (rand_int (&triple_1->a, &cfg->modulus)); 
+  P_CHECK (rand_int (&triple_1->b, &cfg->modulus)); 
+  P_CHECK (rand_int (&triple_2->a, &cfg->modulus)); 
+  P_CHECK (rand_int (&triple_2->b, &cfg->modulus)); 
 
   // We are trying to be a little clever here to avoid the use of temp
   // variables.
 
   // c1 = a1 + a2
-  if ((error = mp_addmod (&triple_1->a, &triple_2->a, &cfg->modulus, &triple_1->c)) != PRIO_OKAY)
-    return error;
+  MP_CHECK (mp_addmod (&triple_1->a, &triple_2->a, &cfg->modulus, &triple_1->c));
 
   // c2 = b1 + b2
-  if ((error = mp_addmod (&triple_1->b, &triple_2->b, &cfg->modulus, &triple_2->c)) != PRIO_OKAY)
-    return error;
+  MP_CHECK (mp_addmod (&triple_1->b, &triple_2->b, &cfg->modulus, &triple_2->c)); 
 
   // c1 = c1 * c2 = (a1 + a2) (b1 + b2)
-  if ((error = mp_mulmod (&triple_1->c, &triple_2->c, &cfg->modulus, &triple_1->c)) != PRIO_OKAY)
-    return error;
+  MP_CHECK (mp_mulmod (&triple_1->c, &triple_2->c, &cfg->modulus, &triple_1->c)); 
 
   // Set c2 to random blinding value
-  if ((error = rand_int (&triple_2->c, &cfg->modulus)) != PRIO_OKAY)
-    return error;
+  MP_CHECK (rand_int (&triple_2->c, &cfg->modulus)); 
 
   // c1 = c1 - c2
-  if ((error = mp_submod (&triple_1->c, &triple_2->c, &cfg->modulus, &triple_1->c)) != PRIO_OKAY)
-    return error;
+  MP_CHECK (mp_submod (&triple_1->c, &triple_2->c, &cfg->modulus, &triple_1->c)); 
 
   // Now we should have random tuples satisfying:
   //   (a1 + a2) (b1 + b2) = c1 + c2

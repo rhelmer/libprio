@@ -32,11 +32,10 @@ struct prio_server {
 
 struct prio_verifier {
   const_PrioConfig cfg;
-  const_PrioPacketClient c_packet;
 
-  mp_int share_f0;
-  mp_int share_g0;
-  mp_int share_h0;
+  mp_int share_fR;
+  mp_int share_gR;
+  mp_int share_hR;
   mp_int share_out;
 };
 

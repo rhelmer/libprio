@@ -23,6 +23,7 @@
 #include "config.h"
 #include "fft.h"
 #include "rand.h"
+#include "util.h"
 
 // Let the points of data_in be [x1, x2, x3, ... ].
 // We construct the polynomial f such that 
@@ -50,16 +51,12 @@ data_polynomial_evals(const_PrioConfig cfg, const struct mparray *data_in,
 
   int error;
   struct mparray points_f, poly_f;
-  if ((error = mparray_init (&points_f, N)) != PRIO_OKAY)
-    return error;
-  if ((error = mparray_init (&poly_f, N)) != PRIO_OKAY)
-    return error;
+  P_CHECK (mparray_init (&points_f, N)); 
+  P_CHECK (mparray_init (&poly_f, N)); 
 
   // Set constant term f(0) to random
-  if ((error = rand_int (&points_f.data[0], mod)) != PRIO_OKAY)
-    return error;
-  if ((error = mp_copy (&points_f.data[0], const_term)) != PRIO_OKAY)
-    return error;
+  P_CHECK (rand_int (&points_f.data[0], mod)); 
+  P_CHECK (mp_copy (&points_f.data[0], const_term)); 
 
   // Set other values of f(x)
   for (int i=1; i<n; i++) {
@@ -67,20 +64,16 @@ data_polynomial_evals(const_PrioConfig cfg, const struct mparray *data_in,
   }
 
   // Interpolate through the Nth roots of unity
-  if ((error = fft(&poly_f, &points_f, cfg, true)) != PRIO_OKAY)
-    return error;
+  P_CHECK (fft(&poly_f, &points_f, cfg, true)); 
 
   // Evaluate at all 2N-th roots of unity. 
   // To do so, first resize the eval arrays and fill upper
   // values with zeros.
-  if ((error = mparray_resize (&poly_f, 2*N)) != PRIO_OKAY)
-    return error;
-  if ((error = mparray_resize (evals_out, 2*N)) != PRIO_OKAY)
-    return error;
+  P_CHECK (mparray_resize (&poly_f, 2*N)); 
+  P_CHECK (mparray_resize (evals_out, 2*N)); 
   
   // Evaluate at the 2N-th roots of unity
-  if ((error = fft(evals_out, &poly_f, cfg, false)) != PRIO_OKAY)
-    return error;
+  P_CHECK (fft(evals_out, &poly_f, cfg, false)); 
 
   mparray_clear (&points_f);
   mparray_clear (&poly_f);
@@ -99,8 +92,7 @@ share_polynomials (const_PrioConfig cfg, const struct mparray *data_in,
   const struct mparray *points_f = data_in;
   struct mparray points_g;
 
-  if ((error = mparray_dup (&points_g, points_f) != PRIO_OKAY))
-    return error;
+  P_CHECK (mparray_dup (&points_g, points_f)); 
   for (int i=0; i<points_f->len; i++) {
     // For each input value x_i, we compute x_i * (x_i-1).
     //    f(i) = x_i
@@ -110,42 +102,28 @@ share_polynomials (const_PrioConfig cfg, const struct mparray *data_in,
   }
 
   mp_int f0, g0;
-  if (mp_init (&f0) != MP_OKAY)
-    return PRIO_ERROR;
-  if (mp_init (&g0) != MP_OKAY)
-    return PRIO_ERROR;
+  MP_CHECK (mp_init (&f0)); 
+  MP_CHECK (mp_init (&g0)); 
 
   struct mparray evals_f_2N, evals_g_2N;
-  if ((error = mparray_init (&evals_f_2N, 0) != PRIO_OKAY))
-    return error;
-  if ((error = mparray_init (&evals_g_2N, 0) != PRIO_OKAY))
-    return error;
+  P_CHECK (mparray_init (&evals_f_2N, 0)); 
+  P_CHECK (mparray_init (&evals_g_2N, 0)); 
 
-  if ((error = data_polynomial_evals(cfg, points_f, 
-          &evals_f_2N, &f0)) != PRIO_OKAY)
-    return error;
-  if ((error = data_polynomial_evals(cfg, &points_g, 
-          &evals_g_2N, &g0)) != PRIO_OKAY)
-    return error;
+  P_CHECK (data_polynomial_evals(cfg, points_f, &evals_f_2N, &f0));
+  P_CHECK (data_polynomial_evals(cfg, &points_g, &evals_g_2N, &g0));
 
   // Must send to each server a share of the points
   //    f(0),   g(0),   and   h(0) = f(0)*g(0)
-  if ((error = share_int (cfg, &f0, &pA->f0_share, &pB->f0_share)) != PRIO_OKAY)
-    return error;
-  if ((error = share_int (cfg, &f0, &pA->g0_share, &pB->g0_share)) != PRIO_OKAY)
-    return error;
+  P_CHECK (share_int (cfg, &f0, &pA->f0_share, &pB->f0_share)); 
+  P_CHECK (share_int (cfg, &f0, &pA->g0_share, &pB->g0_share)); 
 
-  if (mp_mulmod (&f0, &g0, mod, &f0) != MP_OKAY)
-    return PRIO_ERROR;
+  MP_CHECK (mp_mulmod (&f0, &g0, mod, &f0));
 
-  if ((error = share_int (cfg, &f0, &pA->h0_share, &pB->h0_share)) != PRIO_OKAY)
-    return error;
+  P_CHECK (share_int (cfg, &f0, &pA->h0_share, &pB->h0_share)); 
 
   const int lenN = (evals_f_2N.len/2) - 1;
-  if ((error = mparray_init (&pA->h_coeffs, lenN)) != PRIO_OKAY)
-    return error;
-  if ((error = mparray_init (&pB->h_coeffs, lenN)) != PRIO_OKAY)
-    return error;
+  P_CHECK (mparray_init (&pA->h_points, lenN)); 
+  P_CHECK (mparray_init (&pB->h_points, lenN)); 
 
   // We need to send to the servers the evaluations of
   //   f(r) * g(r)
@@ -153,12 +131,8 @@ share_polynomials (const_PrioConfig cfg, const struct mparray *data_in,
   // N-th roots of unity.
   int j = 0;
   for (int i = 1; i < evals_f_2N.len - 1; i += 2) {
-    if (mp_mulmod (&evals_f_2N.data[i], &evals_g_2N.data[i], 
-          mod, &f0) != MP_OKAY)
-      return PRIO_ERROR;
-    if ((error = share_int (cfg, &f0, 
-            &pA->h_coeffs.data[j], &pB->h_coeffs.data[j])) != PRIO_OKAY)
-      return error;
+    MP_CHECK (mp_mulmod (&evals_f_2N.data[i], &evals_g_2N.data[i], mod, &f0));
+    P_CHECK (share_int (cfg, &f0, &pA->h_points.data[j], &pB->h_points.data[j])); 
     j++;
   }
 
@@ -181,15 +155,11 @@ init_objects(PrioPacketClient *ptr)
 
   int error;
   PrioPacketClient p = *ptr;
-  if ((error = triple_new (&p->triple)) != PRIO_OKAY)
-    return error;
+  P_CHECK (triple_new (&p->triple));
 
-  if (mp_init (&p->f0_share) != MP_OKAY)
-    return PRIO_ERROR;
-  if (mp_init (&p->g0_share) != MP_OKAY)
-    return PRIO_ERROR;
-  if (mp_init (&p->h0_share) != MP_OKAY)
-    return PRIO_ERROR;
+  MP_CHECK (mp_init (&p->f0_share)); 
+  MP_CHECK (mp_init (&p->g0_share));
+  MP_CHECK (mp_init (&p->h0_share));
 
   return PRIO_OKAY;
 }
@@ -202,28 +172,18 @@ PrioPacketClient_new (const_PrioConfig cfg, const bool *data_in,
 
   if (!data_in) return PRIO_ERROR; 
 
-  if ((error = init_objects (ptrA)) != PRIO_OKAY)
-    return error;
-  if ((error = init_objects (ptrB)) != PRIO_OKAY)
-    return error;
+  P_CHECK (init_objects (ptrA)); 
+  P_CHECK (init_objects (ptrB)); 
 
   PrioPacketClient pA = *ptrA;
   PrioPacketClient pB = *ptrB;
 
-  if ((error = triple_rand (cfg, &pA->triple, &pB->triple)) != PRIO_OKAY)
-    return error;
+  P_CHECK (triple_rand (cfg, &pA->triple, &pB->triple)); 
 
   struct mparray client_data;
-  if ((error = mparray_init_bool (&client_data, 
-          cfg->num_data_fields, data_in)) != PRIO_OKAY)
-    return error;
-
-  if ((error = mparray_init_share (&pA->data_shares, 
-          &pB->data_shares, &client_data, cfg)) != PRIO_OKAY)
-    return error;
-
-  if ((error = share_polynomials (cfg, &client_data, pA, pB) != PRIO_OKAY))
-    return error;
+  P_CHECK (mparray_init_bool (&client_data, cfg->num_data_fields, data_in));
+  P_CHECK (mparray_init_share (&pA->data_shares, &pB->data_shares, &client_data, cfg)); 
+  P_CHECK (share_polynomials (cfg, &client_data, pA, pB)); 
 
   mparray_clear (&client_data);
 
@@ -233,7 +193,7 @@ PrioPacketClient_new (const_PrioConfig cfg, const bool *data_in,
 void
 PrioPacketClient_clear (PrioPacketClient p)
 {
-  mparray_clear (&p->h_coeffs);
+  mparray_clear (&p->h_points);
   mparray_clear (&p->data_shares);
   triple_clear (&p->triple);
   mp_clear (&p->f0_share);

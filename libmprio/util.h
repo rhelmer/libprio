@@ -15,20 +15,31 @@
  */
 
 
-#ifndef __CLIENT_H__
-#define __CLIENT_H__
+#ifndef __UTIL_H__
+#define __UTIL_H__
 
-#include "mparray.h"
-#include "share.h"
+#include <mprio.h>
+#include "libmpi/mpi.h"
 
-struct prio_packet_client {
-  struct beaver_triple triple;
+#define P_CHECK(s) do { if((error = (s)) != PRIO_OKAY) return error; } while(0);
+#define P_CHECKN(s) do { if((s) != PRIO_OKAY) return NULL; } while(0);
+#define MP_CHECK(s) do { if((s) != MP_OKAY) return PRIO_ERROR; } while(0);
+#define MP_CHECKN(s) do { if((s) != MP_OKAY) return NULL; } while(0);
 
-  mp_int f0_share, g0_share, h0_share;
-  struct mparray data_shares;
-  struct mparray h_points;
-};
+inline int
+next_power_of_two (int val)
+{
+  int i = val;
+  int out = 0;
+  for ( ; i > 0; i >>= 1) {
+    out++;
+  }
+
+  int pow = 1 << out;
+  return (pow > 1 && pow/2 == val) ? val : pow;
+} 
 
 
-#endif /* __CLIENT_H__ */
+
+#endif /* __UTIL_H__ */
 

@@ -58,18 +58,15 @@ rand_int (mp_int *out, const mp_int *max)
 
   do {
 
-    unsigned char rand_bytes[nbytes+1];
-    // First byte in mpi determines sign of integer.
-    // Zero byte means positive.
-    rand_bytes[0] = '\0';
+    unsigned char rand_bytes[nbytes];
     int error;
-    if ((error=PK11_GenerateRandom(rand_bytes+1, nbytes)) != SECSuccess) 
+    if ((error=PK11_GenerateRandom(rand_bytes, nbytes)) != SECSuccess) 
     {
       PRIO_DEBUG ("Error calling PK11_GenerateRandom");
       return PRIO_ERROR;
     }
 
-    if (mp_read_raw (out, (char *)rand_bytes, nbytes+1) != MP_OKAY)
+    if (mp_read_unsigned_octets (out, rand_bytes, nbytes) != MP_OKAY)
     {
       PRIO_DEBUG ("Error converting bytes to big integer");
       return PRIO_ERROR;

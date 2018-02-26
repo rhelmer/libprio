@@ -20,6 +20,7 @@
 #include "config.h"
 #include "mparray.h"
 #include "share.h"
+#include "util.h"
 
 int
 mparray_init (struct mparray *arr, int len)
@@ -30,8 +31,7 @@ mparray_init (struct mparray *arr, int len)
     return PRIO_ERROR;
 
   for (int i=0; i<len; i++) {
-    if (mp_init(&arr->data[i]) != MP_OKAY)
-      return PRIO_ERROR;
+    MP_CHECK (mp_init(&arr->data[i]));
   }
 
   return PRIO_OKAY;
@@ -41,8 +41,7 @@ int
 mparray_init_bool (struct mparray *arr, int len, const bool *data_in)
 {
   int error;
-  if ((error = mparray_init (arr, len)) != PRIO_OKAY)
-    return error;
+  P_CHECK (mparray_init (arr, len)); 
 
   for (int i=0; i<len; i++) {
     mp_set (&arr->data[i], data_in[i]);
@@ -68,8 +67,7 @@ mparray_resize (struct mparray *arr, int newlen)
     return PRIO_ERROR;
 
   for (int i=oldlen; i<newlen; i++) {
-    if (mp_init(&arr->data[i]) != MP_OKAY)
-      return PRIO_ERROR;
+    MP_CHECK (mp_init(&arr->data[i]));
   }
 
   return PRIO_OKAY;
@@ -79,12 +77,10 @@ int
 mparray_dup (struct mparray *dst, const struct mparray *src)
 {
   int error;
-  if ((error = mparray_init (dst, src->len)) != PRIO_OKAY)
-    return error;
+  P_CHECK (mparray_init (dst, src->len)); 
 
   for (int i=0; i<src->len; i++) {
-    if (mp_copy(&src->data[i], &dst->data[i]) != MP_OKAY)
-      return PRIO_ERROR;
+    MP_CHECK (mp_copy(&src->data[i], &dst->data[i]));
   }
 
   return PRIO_OKAY;
@@ -96,15 +92,12 @@ mparray_init_share (struct mparray *arrA, struct mparray *arrB,
 {
   int error;
   const int len = src->len;
-  if ((error = mparray_init (arrA, len)) != PRIO_OKAY)
-    return error;
-  if ((error = mparray_init (arrB, len)) != PRIO_OKAY)
-    return error;
+  P_CHECK (mparray_init (arrA, len));
+  P_CHECK (mparray_init (arrB, len));
 
   for (int i=0; i < len; i++) {
-    if (share_int(cfg, &src->data[i], 
-          &arrA->data[i], &arrB->data[i]) != PRIO_OKAY)
-      return PRIO_ERROR;
+    P_CHECK (share_int(cfg, &src->data[i], 
+          &arrA->data[i], &arrB->data[i]));
   }
 
   return PRIO_OKAY;
@@ -126,8 +119,7 @@ mparray_addmod (struct mparray *dst, const struct mparray *to_add, const mp_int 
     return PRIO_ERROR;
 
   for (int i=0; i<dst->len; i++) {
-    if (mp_addmod (&dst->data[i], &to_add->data[i], mod, &dst->data[i]) != MP_OKAY)
-      return PRIO_ERROR;
+    MP_CHECK (mp_addmod (&dst->data[i], &to_add->data[i], mod, &dst->data[i])); 
   }
 
   return PRIO_OKAY;

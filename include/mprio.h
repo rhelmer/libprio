@@ -26,12 +26,12 @@
  * where num_data_fields is the size of each client packet.
  * Setting this value to 20 is very conservative.
  */
-#define SOUNDESS_PARAM 20
+#define SOUNDNESS_PARAM 20
 
 #define PRIO_OKAY 0
 #define PRIO_ERROR 1
 
-typedef const char ServerSharedSecret[SOUNDESS_PARAM];
+typedef const unsigned char ServerSharedSecret[SOUNDNESS_PARAM];
 
 typedef struct prio_config *PrioConfig;
 typedef const struct prio_config *const_PrioConfig;
