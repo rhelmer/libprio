@@ -20,21 +20,9 @@
 
 #include "libmpi/mpi.h"
 #include "client.h"
+#include "config.h"
 #include "fft.h"
 #include "rand.h"
-
-static int
-next_power_of_two (int val)
-{
-  int i = val;
-  int out = 0;
-  for ( ; i > 0; i >>= 1) {
-    out++;
-  }
-
-  int pow = 1 << out;
-  return (pow > 1 && pow/2 == val) ? val : pow;
-} 
 
 // Let the points of data_in be [x1, x2, x3, ... ].
 // We construct the polynomial f such that 

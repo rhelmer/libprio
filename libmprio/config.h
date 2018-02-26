@@ -32,6 +32,7 @@ struct prio_config {
   struct mparray rootsInv;
 };
 
+int next_power_of_two (int val);
 
 #endif /* __CONFIG_H__ */
 

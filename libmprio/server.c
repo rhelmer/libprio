@@ -92,10 +92,30 @@ PrioTotalShare_clear (PrioTotalShare t)
   free (t);
 }
 
-/*
-PrioVerifier PrioVerifier_new (PrioServer s, const_PrioPacketClient p);
-void PrioVerifier_clear (PrioVerifier v);
+PrioVerifier PrioVerifier_new (PrioServer s, const_PrioPacketClient p, 
+    char shared_secret[16])
+{
+  PrioVerifier v = malloc (sizeof *v);
+  if (!v) return NULL;
+  v->cfg = s->cfg;
+  v->c_packet = p;
 
+  const int n = v->cfg->num_data_fields + 1;
+  const int N = next_power_of_two (n);
+
+  // Use shared secret to compute point r
+
+  // Compute share of f(r), g(r), h(r)
+
+  // Check that all values that should be zero are zero
+}
+
+void PrioVerifier_clear (PrioVerifier v)
+{
+  free (v);
+}
+
+/*
 PrioPacketVerify1 PrioVerifier_packet1 (const_PrioVerifier v);
 void PrioPacketVerify1_clear (PrioPacketVerify1 p);
 

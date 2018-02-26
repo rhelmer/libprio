@@ -66,8 +66,11 @@ void PrioTotalShare_clear (PrioTotalShare t);
 int PrioTotalShare_final (const_PrioConfig cfg, unsigned long *output,
     const_PrioTotalShare tA, const_PrioTotalShare tB);
 
-
-PrioVerifier PrioVerifier_new (PrioServer s, const_PrioPacketClient p);
+// Don't destroy p until after verification is done.
+// shared_secret is a secret value shared between the two 
+// verifying servers.
+PrioVerifier PrioVerifier_new (PrioServer s, const_PrioPacketClient p,
+    char shared_secret[16]);
 void PrioVerifier_clear (PrioVerifier v);
 
 PrioPacketVerify1 PrioVerifier_packet1 (const_PrioVerifier v);

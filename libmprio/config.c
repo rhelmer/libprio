@@ -21,6 +21,20 @@
 #include "params.h"
 #include "rand.h"
 
+int
+next_power_of_two (int val)
+{
+  int i = val;
+  int out = 0;
+  for ( ; i > 0; i >>= 1) {
+    out++;
+  }
+
+  int pow = 1 << out;
+  return (pow > 1 && pow/2 == val) ? val : pow;
+} 
+
+
 static int
 initialize_roots (struct mparray *arr, const char *values[])
 {

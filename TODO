@@ -3,4 +3,4 @@
 * Address TODO notes throughout code
 * Free memory on errors
 * Test error handling
-
+* Add differential privacy noise to final data output
