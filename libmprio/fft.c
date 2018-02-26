@@ -70,9 +70,6 @@ fft_interpolate_raw (mp_int *out,
   }
 } 
 
-// Get an array
-//   (r^0, r^1, r^2, ... )
-// where r is an n-th root of unity.
 void
 fft_get_roots (mp_int *roots_out, int n_points, const_PrioConfig cfg, bool invert)
 {
@@ -85,16 +82,20 @@ fft_get_roots (mp_int *roots_out, int n_points, const_PrioConfig cfg, bool inver
 }
 
 int
-fft_interpolate(mp_int *points_out, const mp_int *points_in, int n_points,
+fft(struct mparray *points_out, const struct mparray *points_in, 
     const_PrioConfig cfg, bool invert)
 {
+  if (points_out->len != points_in->len)
+    return PRIO_ERROR;
+
+  const int n_points = points_in->len;
   if (cfg->n_roots % n_points != 0) 
     return PRIO_ERROR;
 
   mp_int scaled_roots[n_points];
   fft_get_roots (scaled_roots, n_points, cfg, invert);
 
-  fft_interpolate_raw (points_out, points_in, n_points, 
+  fft_interpolate_raw (points_out->data, points_in->data, n_points, 
       scaled_roots, &cfg->modulus, invert);
 
   return PRIO_OKAY;

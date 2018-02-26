@@ -101,7 +101,8 @@ mu_test_client__agg_2 (void)
 }
 
 void 
-mu_test_client__agg_1000 (void)
+mu_test_client__agg_10 (void)
 {
-  test_client_agg (1000);
+  test_client_agg (10);
 }
+

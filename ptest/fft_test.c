@@ -20,6 +20,7 @@
 #include "libmpi/mpi.h"
 #include "libmprio/config.h"
 #include "libmprio/fft.h"
+#include "libmprio/mparray.h"
 #include "mutest.h"
 
 void 
@@ -28,20 +29,18 @@ mu_test__fft_one (void)
   PrioConfig cfg = PrioConfig_defaultNew();
   mu_check (cfg);
 
-  mp_int a, b;
-  mu_check (mp_init (&a) == MP_OKAY);
-  mu_check (mp_init (&b) == MP_OKAY);
+  struct mparray points_in, points_out;
+  mu_check (mparray_init (&points_in, 1)  == MP_OKAY);
+  mu_check (mparray_init (&points_out, 1)  == MP_OKAY);
 
-  const mp_int points_in[] = { a };
-  mp_set (&a, 3);
-  mp_int points_out[] = { b };
-  mu_check (fft_interpolate(points_out, points_in, 1, cfg, false) == PRIO_OKAY);
+  mp_set (&points_in.data[0], 3);
+  mu_check (fft(&points_out, &points_in, cfg, false) == PRIO_OKAY);
 
-  mu_check (mp_cmp_d(&a, 3) == 0);
-  mu_check (mp_cmp_d(&b, 3) == 0);
+  mu_check (mp_cmp_d(&points_in.data[0], 3) == 0);
+  mu_check (mp_cmp_d(&points_out.data[0], 3) == 0);
 
-  mp_clear (&a);
-  mp_clear (&b);
+  mparray_clear (&points_in);
+  mparray_clear (&points_out);
 
   PrioConfig_clear (cfg);
 }
@@ -75,21 +74,18 @@ mu_test__fft_simple (void)
   PrioConfig cfg = PrioConfig_defaultNew();
   mu_check (cfg);
 
-  mp_int points_in[nPoints];
-  mp_int points_out[nPoints];
-  mp_int roots[nPoints];
-  for (int i=0; i<nPoints; i++) {
-    mu_check (mp_init (&points_in[i]) == MP_OKAY);
-    mu_check (mp_init (&points_out[i]) == MP_OKAY);
-  }
+  struct mparray points_in, points_out;
+  mu_check (mparray_init (&points_in, nPoints) == MP_OKAY);
+  mu_check (mparray_init (&points_out, nPoints) == MP_OKAY);
 
+  mp_int roots[nPoints];
   fft_get_roots (roots, nPoints, cfg, false);
 
-  mp_set (&points_in[0], 3);
-  mp_set (&points_in[1], 8);
-  mp_set (&points_in[2], 7);
-  mp_set (&points_in[3], 9);
-  mu_check (fft_interpolate(points_out, points_in, nPoints, cfg, false) == PRIO_OKAY);
+  mp_set (&points_in.data[0], 3);
+  mp_set (&points_in.data[1], 8);
+  mp_set (&points_in.data[2], 7);
+  mp_set (&points_in.data[3], 9);
+  mu_check (fft(&points_out, &points_in, cfg, false) == PRIO_OKAY);
 
   mp_int should_be, tmp;
   mp_init (&should_be);
@@ -99,7 +95,7 @@ mu_test__fft_simple (void)
     mp_set (&should_be, 0);
     for (int j=0; j<nPoints; j++) {
       mu_check (mp_exptmod_d(&roots[i], j, &cfg->modulus, &tmp) == MP_OKAY);
-      mu_check (mp_mulmod(&tmp, &points_in[j], &cfg->modulus, &tmp) == MP_OKAY);
+      mu_check (mp_mulmod(&tmp, &points_in.data[j], &cfg->modulus, &tmp) == MP_OKAY);
       mu_check (mp_addmod(&should_be, &tmp, &cfg->modulus, &should_be) == MP_OKAY);
     }
 
@@ -110,15 +106,13 @@ mu_test__fft_simple (void)
     mp_print(&points_out[i], stdout);
     puts("");
     */
-    mu_check (mp_cmp (&should_be, &points_out[i]) == 0);
+    mu_check (mp_cmp (&should_be, &points_out.data[i]) == 0);
   }
 
   mp_clear (&tmp);
   mp_clear (&should_be);
-  for (int i=0; i<nPoints; i++) {
-    mp_clear (&points_in[i]); 
-    mp_clear (&points_out[i]);
-  }
+  mparray_clear (&points_in);
+  mparray_clear (&points_out);
   PrioConfig_clear (cfg);
 }
 
@@ -130,37 +124,31 @@ mu_test__fft_invert (void)
   PrioConfig cfg = PrioConfig_defaultNew();
   mu_check (cfg);
 
-  mp_int points_in[nPoints];
-  mp_int points_out[nPoints];
-  mp_int points_out2[nPoints];
-  mp_int roots[nPoints];
-  for (int i=0; i<nPoints; i++) {
-    mu_check (mp_init (&points_in[i]) == MP_OKAY);
-    mu_check (mp_init (&points_out[i]) == MP_OKAY);
-    mu_check (mp_init (&points_out2[i]) == MP_OKAY);
-  }
+  struct mparray points_in, points_out, points_out2;
+  mu_check (mparray_init (&points_in, nPoints) == MP_OKAY);
+  mu_check (mparray_init (&points_out, nPoints) == MP_OKAY);
+  mu_check (mparray_init (&points_out2, nPoints) == MP_OKAY);
 
+  mp_int roots[nPoints];
   fft_get_roots (roots, nPoints, cfg, false);
 
-  mp_set (&points_in[0], 3);
-  mp_set (&points_in[1], 8);
-  mp_set (&points_in[2], 7);
-  mp_set (&points_in[3], 9);
-  mp_set (&points_in[4], 123);
-  mp_set (&points_in[5], 123123987);
-  mp_set (&points_in[6], 2);
-  mp_set (&points_in[7], 0);
-  mu_check (fft_interpolate(points_out, points_in, nPoints, cfg, false) == PRIO_OKAY);
-  mu_check (fft_interpolate(points_out2, points_out, nPoints, cfg, true) == PRIO_OKAY);
+  mp_set (&points_in.data[0], 3);
+  mp_set (&points_in.data[1], 8);
+  mp_set (&points_in.data[2], 7);
+  mp_set (&points_in.data[3], 9);
+  mp_set (&points_in.data[4], 123);
+  mp_set (&points_in.data[5], 123123987);
+  mp_set (&points_in.data[6], 2);
+  mp_set (&points_in.data[7], 0);
+  mu_check (fft(&points_out, &points_in, cfg, false) == PRIO_OKAY);
+  mu_check (fft(&points_out2, &points_out, cfg, true) == PRIO_OKAY);
 
   for (int i=0; i<nPoints; i++) {
-    mu_check (mp_cmp (&points_out2[i], &points_in[i]) == 0);
+    mu_check (mp_cmp (&points_out2.data[i], &points_in.data[i]) == 0);
   }
 
-  for (int i=0; i<nPoints; i++) {
-    mp_clear (&points_in[i]); 
-    mp_clear (&points_out[i]);
-    mp_clear (&points_out2[i]);
-  }
+  mparray_clear (&points_in);
+  mparray_clear (&points_out);
+  mparray_clear (&points_out2);
   PrioConfig_clear (cfg);
 }

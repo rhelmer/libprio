@@ -19,6 +19,7 @@
 
 #include "config.h"
 #include "mparray.h"
+#include "share.h"
 
 int
 mparray_init (struct mparray *arr, int len)
@@ -37,11 +38,72 @@ mparray_init (struct mparray *arr, int len)
 }
 
 int 
+mparray_init_bool (struct mparray *arr, int len, const bool *data_in)
+{
+  int error;
+  if ((error = mparray_init (arr, len)) != PRIO_OKAY)
+    return error;
+
+  for (int i=0; i<len; i++) {
+    mp_set (&arr->data[i], data_in[i]);
+  }
+ 
+  return PRIO_OKAY; 
+}
+
+int
+mparray_resize (struct mparray *arr, int newlen)
+{
+  const int oldlen = arr->len;
+  arr->len = newlen;
+
+  if (newlen < oldlen) {
+    for (int i=newlen; i<oldlen; i++) {
+      mp_clear(&arr->data[i]);
+    }
+  }
+
+  arr->data = realloc (arr->data, sizeof (mp_int) * newlen);
+  if (!arr->data) 
+    return PRIO_ERROR;
+
+  for (int i=oldlen; i<newlen; i++) {
+    if (mp_init(&arr->data[i]) != MP_OKAY)
+      return PRIO_ERROR;
+  }
+
+  return PRIO_OKAY;
+}
+
+int 
 mparray_dup (struct mparray *dst, const struct mparray *src)
 {
-  mparray_init (dst, src->len);
+  int error;
+  if ((error = mparray_init (dst, src->len)) != PRIO_OKAY)
+    return error;
+
   for (int i=0; i<src->len; i++) {
     if (mp_copy(&src->data[i], &dst->data[i]) != MP_OKAY)
+      return PRIO_ERROR;
+  }
+
+  return PRIO_OKAY;
+}
+
+int 
+mparray_init_share (struct mparray *arrA, struct mparray *arrB, 
+    const struct mparray *src, const_PrioConfig cfg)
+{
+  int error;
+  const int len = src->len;
+  if ((error = mparray_init (arrA, len)) != PRIO_OKAY)
+    return error;
+  if ((error = mparray_init (arrB, len)) != PRIO_OKAY)
+    return error;
+
+  for (int i=0; i < len; i++) {
+    if (share_int(cfg, &src->data[i], 
+          &arrA->data[i], &arrB->data[i]) != PRIO_OKAY)
       return PRIO_ERROR;
   }
 

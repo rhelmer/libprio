@@ -24,6 +24,9 @@
 static int
 initialize_roots (struct mparray *arr, const char *values[])
 {
+  // TODO: Read in only the number of roots of unity we need.
+  // Right now we read in all 4096 roots whether or not we use
+  // them all.
   for (int i=0; i < arr->len; i++) {
     if ((mp_read_radix (&arr->data[i], values[i], 16) != MP_OKAY)) 
       return PRIO_ERROR;

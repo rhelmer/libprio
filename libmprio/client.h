@@ -24,6 +24,7 @@
 struct prio_packet_client {
   struct beaver_triple triple;
 
+  mp_int h0_share;
   struct mparray data_shares;
   struct mparray h_coeffs;
 };

@@ -30,6 +30,7 @@ struct beaver_triple {
 
 /*
  * Use secret sharing to split the int src into two shares.
+ * The mp_ints must be initialized.
  */
 int share_int (const struct prio_config *cfg, const mp_int *src, 
     mp_int *shareA, mp_int *shareB);

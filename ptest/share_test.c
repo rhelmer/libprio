@@ -19,6 +19,7 @@
 
 #include "libmpi/mpi.h"
 #include "libmprio/config.h"
+#include "libmprio/mparray.h"
 #include "libmprio/share.h"
 #include "mutest.h"
 
@@ -54,3 +55,25 @@ mu_test_share (void)
   triple_clear (&t2);
 }
 
+void 
+mu_test_arr (void)
+{
+  struct mparray arr;
+  mu_check (mparray_init (&arr, 10) == PRIO_OKAY);
+  for (int i=0; i<10; i++) {
+    mp_set (&arr.data[i], i);
+  }
+
+  mu_check (mparray_resize (&arr, 15) == PRIO_OKAY);
+  for (int i=10; i<15; i++) {
+    mu_check (mp_cmp_d (&arr.data[i], 0) == 0);
+    mp_set (&arr.data[i], i);
+  }
+
+  mu_check (mparray_resize (&arr, 7) == PRIO_OKAY);
+  for (int i=10; i<7; i++) {
+    mu_check (mp_cmp_d (&arr.data[i], i) == 0);
+  }
+
+  mparray_clear (&arr);
+}
