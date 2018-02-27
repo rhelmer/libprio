@@ -36,6 +36,8 @@ struct prio_verifier {
   const_PrioConfig cfg;
   int idx;
 
+  const_PrioPacketClient clientp;
+
   mp_int share_fR;
   mp_int share_gR;
   mp_int share_hR;
@@ -43,11 +45,12 @@ struct prio_verifier {
 };
 
 struct prio_packet_verify1 {
-
+  mp_int share_d;
+  mp_int share_e;
 };
 
 struct prio_packet_verify2 {
-
+  mp_int share_out;
 };
 
 #endif /* __SERVER_H__ */

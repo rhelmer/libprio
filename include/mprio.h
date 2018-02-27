@@ -33,6 +33,9 @@
 
 typedef const unsigned char ServerSharedSecret[SOUNDNESS_PARAM];
 
+/*
+ * Opaque types
+ */
 typedef struct prio_config *PrioConfig;
 typedef const struct prio_config *const_PrioConfig;
 
@@ -87,9 +90,9 @@ PrioPacketVerify1 PrioVerifier_packet1 (const_PrioVerifier v);
 void PrioPacketVerify1_clear (PrioPacketVerify1 p);
 
 PrioPacketVerify2 PrioVerifier_packet2 (const_PrioVerifier v,
-    PrioPacketVerify1 pA, PrioPacketVerify1 pB);
+    const_PrioPacketVerify1 pA, const_PrioPacketVerify1 pB);
 int PrioVerifier_isValid (const_PrioVerifier v,
-    PrioPacketVerify2 pA, PrioPacketVerify2 pB);
+    const_PrioPacketVerify2 pA, const_PrioPacketVerify2 pB);
 void PrioPacketVerify2_clear (PrioPacketVerify2 p);
 
 #endif /* __PRIO_H__ */

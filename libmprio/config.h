@@ -26,6 +26,7 @@ static const int DefaultNumDataFields = 128;
 struct prio_config {
   int num_data_fields;
   mp_int modulus;
+  mp_int inv2;
 
   int n_roots;
   struct mparray roots;

@@ -198,6 +198,7 @@ PrioVerifier PrioVerifier_new (PrioServer s, const_PrioPacketClient p,
   if (!v) return NULL;
   v->cfg = s->cfg;
   v->idx = s->idx;
+  v->clientp = p;
 
   MP_CHECKN (mp_init (&v->share_fR));
   MP_CHECKN (mp_init (&v->share_gR));
@@ -217,16 +218,118 @@ PrioVerifier PrioVerifier_new (PrioServer s, const_PrioPacketClient p,
 
 void PrioVerifier_clear (PrioVerifier v)
 {
+  mp_clear (&v->share_fR);
+  mp_clear (&v->share_gR);
+  mp_clear (&v->share_hR);
   free (v);
 }
 
-/*
-PrioPacketVerify1 PrioVerifier_packet1 (const_PrioVerifier v);
-void PrioPacketVerify1_clear (PrioPacketVerify1 p);
+PrioPacketVerify1 
+PrioVerifier_packet1 (const_PrioVerifier v)
+{
+  // See the Prio paper for details on how this works.
+  // Appendix C descrives the MPC protocol used here.
 
-PrioPacketVerify2 PrioVerifier_packet2 (const_PrioVerifier v,
-    PrioPacketVerify1 pA, PrioPacketVerify1 pB);
-int PrioVerifier_isValid (const_PrioVerifier v,
-    PrioPacketVerify2 pA, PrioPacketVerify2 pB);
-void PrioPacketVerify2_clear (PrioPacketVerify2 p);
-*/
+  PrioPacketVerify1 p = malloc (sizeof *p);
+  if (!p) return NULL;
+
+  MP_CHECKN (mp_init (&p->share_d));
+  MP_CHECKN (mp_init (&p->share_e));
+
+  // Compute corrections.
+  //   [d] = [f(r)] - [a]
+  MP_CHECKN (mp_sub (&v->share_fR, &v->clientp->triple.a, &p->share_d));
+  MP_CHECKN (mp_mod (&p->share_d, &v->cfg->modulus, &p->share_d));
+
+  //   [e] = [g(r)] - [b]
+  MP_CHECKN (mp_sub (&v->share_gR, &v->clientp->triple.b, &p->share_e));
+  MP_CHECKN (mp_mod (&p->share_e, &v->cfg->modulus, &p->share_e));
+
+  return p;
+}
+
+void 
+PrioPacketVerify1_clear (PrioPacketVerify1 p)
+{
+  mp_clear (&p->share_d);
+  mp_clear (&p->share_e);
+  free (p);
+}
+
+PrioPacketVerify2 
+PrioVerifier_packet2 (const_PrioVerifier v,
+    const_PrioPacketVerify1 pA, const_PrioPacketVerify1 pB)
+{
+  PrioPacketVerify2 p = malloc (sizeof *p);
+  if (!p) return NULL;
+
+  mp_int d, e, tmp;
+  MP_CHECKN (mp_init (&p->share_out));
+  MP_CHECKN (mp_init (&d));
+  MP_CHECKN (mp_init (&e));
+  MP_CHECKN (mp_init (&tmp));
+
+  // Compute share of f(r)*g(r)
+  //    [f(r)*g(r)] = [d*e/2] + d[b] + e[a] + [c]
+ 
+ // Compute d 
+  MP_CHECKN (mp_addmod (&pA->share_d, &pB->share_d, &v->cfg->modulus, &d));
+  // Compute e
+  MP_CHECKN (mp_addmod (&pA->share_e, &pB->share_e, &v->cfg->modulus, &e));
+
+  // Compute d*e
+  MP_CHECKN (mp_mulmod (&d, &e, &v->cfg->modulus, &p->share_out));
+  // out = d*e/2
+  MP_CHECKN (mp_mulmod (&p->share_out, &v->cfg->inv2, 
+        &v->cfg->modulus, &p->share_out));
+
+  // Compute d[b] 
+  MP_CHECKN (mp_mulmod (&d, &v->clientp->triple.b, 
+        &v->cfg->modulus, &tmp));
+  // out = d*e/2 + d[b] 
+  MP_CHECKN (mp_addmod (&p->share_out, &tmp, &v->cfg->modulus, &p->share_out));
+
+  // Compute e[a] 
+  MP_CHECKN (mp_mulmod (&e, &v->clientp->triple.a, &v->cfg->modulus, &tmp));
+  // out = d*e/2 + d[b] + e[a]
+  MP_CHECKN (mp_addmod (&p->share_out, &tmp, &v->cfg->modulus, &p->share_out));
+
+  // out = d*e/2 + d[b] + e[a] + [c]
+  MP_CHECKN (mp_addmod (&p->share_out, &v->clientp->triple.c, 
+        &v->cfg->modulus, &p->share_out));
+
+  // We want to compute f(r)*g(r) - h(r),
+  // so subtract off [h(r)]:
+  //    out = d*e/2 + d[b] + e[a] + [c] - [h(r)]
+  MP_CHECKN (mp_sub (&p->share_out, &v->share_hR, &p->share_out));
+  MP_CHECKN (mp_mod (&p->share_out, &v->cfg->modulus, &p->share_out));
+
+  mp_clear (&d);
+  mp_clear (&e);
+  mp_clear (&tmp);
+  return p;
+}
+
+void 
+PrioPacketVerify2_clear (PrioPacketVerify2 p)
+{
+  mp_clear (&p->share_out);
+  free (p);
+}
+
+int 
+PrioVerifier_isValid (const_PrioVerifier v,
+    const_PrioPacketVerify2 pA, const_PrioPacketVerify2 pB)
+{
+  mp_int res;
+  MP_CHECK (mp_init (&res));
+  
+  MP_CHECK (mp_addmod (&pA->share_out, &pB->share_out,
+        &v->cfg->modulus, &res));
+
+  bool good = (mp_cmp_d (&res, 0) == 0);
+
+  mp_clear (&res);
+  return good ? PRIO_OKAY : PRIO_ERROR;
+}
+

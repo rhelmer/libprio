@@ -44,10 +44,14 @@ PrioConfig_defaultNew (void)
   if (!cfg)
     return NULL;
 
-  if (mp_init (&cfg->modulus) != MP_OKAY)
-    return NULL;
+  MP_CHECKN (mp_init (&cfg->modulus));
+  MP_CHECKN (mp_init (&cfg->inv2));
 
   MP_CHECKN (mp_read_radix (&cfg->modulus, Modulus, 16)); 
+
+  // Compute  2^{-1} modulo M
+  mp_set (&cfg->inv2, 2);
+  MP_CHECKN (mp_invmod (&cfg->inv2, &cfg->modulus, &cfg->inv2)); 
 
   cfg->num_data_fields = DefaultNumDataFields;
   cfg->n_roots = 1 << Generator2Order;
@@ -68,6 +72,7 @@ PrioConfig_clear(PrioConfig cfg)
   mparray_clear (&cfg->roots);
   mparray_clear (&cfg->rootsInv);
   mp_clear (&cfg->modulus);
+  mp_clear (&cfg->inv2);
   free (cfg);
 }
 

@@ -1,5 +1,5 @@
 
 - Note: We try to free all memory in the common case, but don't guarantee much
   about memory leaks in exceptional cases (e.g., OOM)
-- Note: We put the prio header file in a subdir because
-  there is an NSPR header called prio.h
+- Note: We call the prio header <mprio.h> because there is an NSPR
+  header called prio.h.
