@@ -63,7 +63,7 @@ int PrioPacketClient_new (const_PrioConfig cfg, const bool *data_in,
     PrioPacketClient *for_server_a, PrioPacketClient *for_server_b);
 void PrioPacketClient_clear (PrioPacketClient p);
 
-PrioServer PrioServer_new (const_PrioConfig cfg);
+PrioServer PrioServer_new (const_PrioConfig cfg, int server_idx);
 void PrioServer_clear (PrioServer s);
 
 int PrioServer_aggregate (PrioServer s, const_PrioPacketClient p);

@@ -27,11 +27,14 @@ struct prio_total_share {
 
 struct prio_server {
   const_PrioConfig cfg;
+  // Index of the server (0 or 1)
+  int idx;
   struct mparray data_shares;
 };
 
 struct prio_verifier {
   const_PrioConfig cfg;
+  int idx;
 
   mp_int share_fR;
   mp_int share_gR;

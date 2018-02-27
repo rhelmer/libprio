@@ -104,7 +104,7 @@ fft_get_roots (mp_int *roots_out, int n_points, const_PrioConfig cfg, bool inver
 }
 
 int
-fft(struct mparray *points_out, const struct mparray *points_in, 
+fft (struct mparray *points_out, const struct mparray *points_in, 
     const_PrioConfig cfg, bool invert)
 {
   if (points_out->len != points_in->len)

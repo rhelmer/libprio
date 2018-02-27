@@ -115,13 +115,13 @@ share_polynomials (const_PrioConfig cfg, const struct mparray *data_in,
   // Must send to each server a share of the points
   //    f(0),   g(0),   and   h(0) = f(0)*g(0)
   P_CHECK (share_int (cfg, &f0, &pA->f0_share, &pB->f0_share)); 
-  P_CHECK (share_int (cfg, &f0, &pA->g0_share, &pB->g0_share)); 
+  P_CHECK (share_int (cfg, &g0, &pA->g0_share, &pB->g0_share)); 
 
   MP_CHECK (mp_mulmod (&f0, &g0, mod, &f0));
 
   P_CHECK (share_int (cfg, &f0, &pA->h0_share, &pB->h0_share)); 
 
-  const int lenN = (evals_f_2N.len/2) - 1;
+  const int lenN = (evals_f_2N.len/2);
   P_CHECK (mparray_init (&pA->h_points, lenN)); 
   P_CHECK (mparray_init (&pB->h_points, lenN)); 
 
@@ -130,10 +130,14 @@ share_polynomials (const_PrioConfig cfg, const struct mparray *data_in,
   // for all 2N-th roots of unity r that are not also
   // N-th roots of unity.
   int j = 0;
-  for (int i = 1; i < evals_f_2N.len - 1; i += 2) {
+  for (int i = 1; i < evals_f_2N.len; i += 2) {
     MP_CHECK (mp_mulmod (&evals_f_2N.data[i], &evals_g_2N.data[i], mod, &f0));
     P_CHECK (share_int (cfg, &f0, &pA->h_points.data[j], &pB->h_points.data[j])); 
     j++;
+  }
+
+  for (int i = 0; i < evals_f_2N.len; i += 2) {
+    MP_CHECK (mp_mulmod (&evals_f_2N.data[i], &evals_g_2N.data[i], mod, &f0));
   }
 
   mparray_clear (&evals_f_2N);

@@ -52,8 +52,8 @@ test_client_agg (int nclients)
     data_items[i] = (i % 3 == 1) || (i % 5 == 3);
   }
 
-  PrioServer sA = PrioServer_new (cfg);
-  PrioServer sB = PrioServer_new (cfg);
+  PrioServer sA = PrioServer_new (cfg, 0);
+  PrioServer sB = PrioServer_new (cfg, 1);
   mu_check (sA);
   mu_check (sB);
 

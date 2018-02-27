@@ -1,6 +1,8 @@
 
-* Use PRG to compress shares
 * Address TODO notes throughout code
+* Use PRG to compress shares
 * Free memory on errors
 * Test error handling
 * Add differential privacy noise to final data output
+* Optimize polynomial evaluation step on servers.
+   O(n log n)  =>  O(n)

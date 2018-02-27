@@ -26,11 +26,12 @@
 #include "util.h"
 
 PrioServer 
-PrioServer_new (const_PrioConfig cfg)
+PrioServer_new (const_PrioConfig cfg, int server_idx)
 {
   PrioServer s = malloc (sizeof (*s));
   if (!s) return NULL;
   s->cfg = cfg;
+  s->idx = server_idx;
   
   if (mparray_init (&s->data_shares, s->cfg->num_data_fields) != PRIO_OKAY)
     return NULL;
@@ -117,15 +118,14 @@ interp_evaluate (mp_int *value, const struct mparray *poly_points,
   int error;
   const int N = poly_points->len;
   struct mparray coeffs;
-  if (mparray_init (&coeffs, N) != PRIO_OKAY)
-    return PRIO_ERROR;
+  P_CHECK (mparray_init (&coeffs, N));
+
+  mp_int roots[N];
+  fft_get_roots (roots, N, cfg, false);
 
   // Interpolate polynomial through roots of unity
-  if ((error = fft (&coeffs, poly_points, cfg, true)) != PRIO_OKAY)
-    return error;
-
-  if ((error = eval_poly (value, &coeffs, eval_at, cfg)) != PRIO_OKAY)
-    return error;
+  P_CHECK (fft (&coeffs, poly_points, cfg, true)) 
+  P_CHECK (eval_poly (value, &coeffs, eval_at, cfg));
 
   mparray_clear (&coeffs);
   return PRIO_OKAY;
@@ -147,13 +147,13 @@ compute_shares (PrioVerifier v, ServerSharedSecret secret, const_PrioPacketClien
   // but for values this large, it will be close
   // enough.
   MP_CHECK (mp_mod (&eval_at, &v->cfg->modulus, &eval_at));
-  
+
   struct mparray points_f, points_g, points_h;
   if (mparray_init (&points_f, N) != PRIO_OKAY)
     return PRIO_ERROR;
   if (mparray_init (&points_g, N) != PRIO_OKAY)
     return PRIO_ERROR;
-  if (mparray_init (&points_h, 2*N - 1) != PRIO_OKAY)
+  if (mparray_init (&points_h, 2*N) != PRIO_OKAY)
     return PRIO_ERROR;
 
   // Client sends us the values of f(0) and g(0)
@@ -166,16 +166,19 @@ compute_shares (PrioVerifier v, ServerSharedSecret secret, const_PrioPacketClien
     MP_CHECK (mp_copy(&p->data_shares.data[i-1], &points_f.data[i]));
 
     // [g](i) = i-th data share minus 1
-    MP_CHECK (mp_sub_d(&points_f.data[i], 1, &points_g.data[i]));
-    MP_CHECK (mp_mod(&points_g.data[i], &v->cfg->modulus, &points_g.data[i]));
+    // Only need to shift the share for 0-th server
+    MP_CHECK (mp_copy(&points_f.data[i], &points_g.data[i]));
+    if (!v->idx) {
+      MP_CHECK (mp_sub_d(&points_g.data[i], 1, &points_g.data[i]));
+      MP_CHECK (mp_mod(&points_g.data[i], &v->cfg->modulus, &points_g.data[i]));
+    }
   }
 
   int j = 0;
-  for (int i=1; i<2*N-1; i+=2) {
+  for (int i=1; i<2*N; i+=2) {
     MP_CHECK (mp_copy(&p->h_points.data[j++], &points_h.data[i]));
   }
 
- 
   int error;
   P_CHECK (interp_evaluate (&v->share_fR, &points_f, &eval_at, v->cfg));
   P_CHECK (interp_evaluate (&v->share_gR, &points_g, &eval_at, v->cfg));
@@ -194,6 +197,7 @@ PrioVerifier PrioVerifier_new (PrioServer s, const_PrioPacketClient p,
   PrioVerifier v = malloc (sizeof *v);
   if (!v) return NULL;
   v->cfg = s->cfg;
+  v->idx = s->idx;
 
   MP_CHECKN (mp_init (&v->share_fR));
   MP_CHECKN (mp_init (&v->share_gR));
