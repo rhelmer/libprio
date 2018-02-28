@@ -24,52 +24,52 @@
 #include "rand.h"
 
 
-int
+SECStatus
 rand_init (void)
 {
-  int error = NSS_NoDB_Init (".");
-  if (error != SECSuccess) 
-    return PRIO_ERROR;
+  SECStatus rv = NSS_NoDB_Init (".");
+  if (rv != SECSuccess) 
+    return SECFailure;
 
   // For this example, we don't use database passwords
   PK11_InitPin(PK11_GetInternalKeySlot(), "", "");
 
-  return PRIO_OKAY;
+  return SECSuccess;
 }
 
-int 
+SECStatus
 rand_int (mp_int *out, const mp_int *max)
 {
   if (!NSS_IsInitialized ()) {
     PRIO_DEBUG ("NSS not initialized. Call rand_init() first.");
-    return PRIO_ERROR;
+    return SECFailure;
   }
 
   // Ensure max value is > 0
   if (mp_cmp_z (max) == 0)
-    return PRIO_ERROR;
+    return SECFailure;
 
   // Compute max-1, which tells us the largest
   // value we will ever need to generate.
   if (mp_sub_d (max, 1, out) != MP_OKAY)
-    return PRIO_ERROR;
+    return SECFailure;
 
   const int nbytes = mp_unsigned_octet_size (out);
 
   do {
 
     unsigned char rand_bytes[nbytes];
-    int error;
-    if ((error=PK11_GenerateRandom(rand_bytes, nbytes)) != SECSuccess) 
+    SECStatus rv;
+    if ((rv = PK11_GenerateRandom (rand_bytes, nbytes)) != SECSuccess) 
     {
       PRIO_DEBUG ("Error calling PK11_GenerateRandom");
-      return PRIO_ERROR;
+      return SECFailure;
     }
 
     if (mp_read_unsigned_octets (out, rand_bytes, nbytes) != MP_OKAY)
     {
       PRIO_DEBUG ("Error converting bytes to big integer");
-      return PRIO_ERROR;
+      return SECFailure;
     }
 
     // Use [inefficient] rejection sampling to find a number

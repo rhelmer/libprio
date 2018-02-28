@@ -19,27 +19,29 @@
 
 #include "config.h"
 #include "params.h"
+#include "mparray.h"
 #include "rand.h"
 #include "util.h"
 
 
-static int
-initialize_roots (struct mparray *arr, const char *values[])
+static SECStatus
+initialize_roots (MPArray arr, const char *values[])
 {
   // TODO: Read in only the number of roots of unity we need.
   // Right now we read in all 4096 roots whether or not we use
   // them all.
   for (int i=0; i < arr->len; i++) {
     if ((mp_read_radix (&arr->data[i], values[i], 16) != MP_OKAY)) 
-      return PRIO_ERROR;
+      return SECFailure;
   }
   
-  return PRIO_OKAY;
+  return SECSuccess;
 }
 
 PrioConfig 
 PrioConfig_defaultNew (void)
 {
+  // TODO: Error handling
   PrioConfig cfg = malloc (sizeof (*cfg));
   if (!cfg)
     return NULL;
@@ -58,19 +60,22 @@ PrioConfig_defaultNew (void)
   if (cfg->num_data_fields >= cfg->n_roots)
     return NULL;
 
-  MP_CHECKN (mparray_init (&cfg->roots, cfg->n_roots)); 
-  MP_CHECKN (initialize_roots (&cfg->roots, Roots)); 
-  MP_CHECKN (mparray_init (&cfg->rootsInv, cfg->n_roots)); 
-  MP_CHECKN (initialize_roots (&cfg->rootsInv, RootsInv)); 
+  cfg->roots = MPArray_init (cfg->n_roots);
+  if (!cfg->roots) return NULL; 
+  MP_CHECKN (initialize_roots (cfg->roots, Roots)); 
+
+  cfg->rootsInv = MPArray_init (cfg->n_roots);
+  if (!cfg->rootsInv) return NULL;
+  MP_CHECKN (initialize_roots (cfg->rootsInv, RootsInv)); 
 
   return cfg;
 }
 
 void 
-PrioConfig_clear(PrioConfig cfg)
+PrioConfig_clear (PrioConfig cfg)
 {
-  mparray_clear (&cfg->roots);
-  mparray_clear (&cfg->rootsInv);
+  MPArray_clear (cfg->roots);
+  MPArray_clear (cfg->rootsInv);
   mp_clear (&cfg->modulus);
   mp_clear (&cfg->inv2);
   free (cfg);

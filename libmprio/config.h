@@ -29,8 +29,8 @@ struct prio_config {
   mp_int inv2;
 
   int n_roots;
-  struct mparray roots;
-  struct mparray rootsInv;
+  MPArray roots;
+  MPArray rootsInv;
 };
 
 #endif /* __CONFIG_H__ */

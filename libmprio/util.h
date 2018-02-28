@@ -21,10 +21,27 @@
 #include <mprio.h>
 #include "libmpi/mpi.h"
 
-#define P_CHECK(s) do { if((error = (s)) != PRIO_OKAY) return error; } while(0);
-#define P_CHECKN(s) do { if((s) != PRIO_OKAY) return NULL; } while(0);
-#define MP_CHECK(s) do { if((s) != MP_OKAY) return PRIO_ERROR; } while(0);
+#define P_CHECK(s) \
+  do { \
+    if((rv = (s)) != SECSuccess) \
+    return rv; \
+  } while(0);
+#define P_CHECKN(s) do { if((s) != SECSuccess) return NULL; } while(0);
+#define P_CHECKC(s) \
+  do { \
+    if((rv = (s)) != SECSuccess) { \
+       goto cleanup; \
+    }\
+  } while(0);
+#define MP_CHECK(s) do { if((s) != MP_OKAY) return SECFailure; } while(0);
 #define MP_CHECKN(s) do { if((s) != MP_OKAY) return NULL; } while(0);
+#define MP_CHECKC(s) \
+  do { \
+    if((s) != MP_OKAY) { \
+       rv = SECFailure; \
+       goto cleanup; \
+    }\
+  } while(0);
 
 inline int
 next_power_of_two (int val)
@@ -38,7 +55,6 @@ next_power_of_two (int val)
   int pow = 1 << out;
   return (pow > 1 && pow/2 == val) ? val : pow;
 } 
-
 
 
 #endif /* __UTIL_H__ */

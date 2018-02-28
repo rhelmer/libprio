@@ -27,13 +27,13 @@ void
 mu_test_share (void)
 {
   struct beaver_triple t1, t2;
-  mu_check (triple_new (&t1) == PRIO_OKAY);
-  mu_check (triple_new (&t2) == PRIO_OKAY);
+  mu_check (triple_new (&t1) == SECSuccess);
+  mu_check (triple_new (&t2) == SECSuccess);
 
   PrioConfig cfg = PrioConfig_defaultNew();
   mu_check (cfg);
 
-  mu_check (triple_rand (cfg, &t1, &t2) == PRIO_OKAY);
+  mu_check (triple_rand (cfg, &t1, &t2) == SECSuccess);
 
   mp_int a, b, c;
   mu_check (mp_init (&a) == MP_OKAY);
@@ -58,22 +58,23 @@ mu_test_share (void)
 void 
 mu_test_arr (void)
 {
-  struct mparray arr;
-  mu_check (mparray_init (&arr, 10) == PRIO_OKAY);
+  MPArray arr = MPArray_init (10);
+  mu_ensure (arr);
+
   for (int i=0; i<10; i++) {
-    mp_set (&arr.data[i], i);
+    mp_set (&arr->data[i], i);
   }
 
-  mu_check (mparray_resize (&arr, 15) == PRIO_OKAY);
+  mu_ensure (MPArray_resize (arr, 15) == SECSuccess);
   for (int i=10; i<15; i++) {
-    mu_check (mp_cmp_d (&arr.data[i], 0) == 0);
-    mp_set (&arr.data[i], i);
+    mu_check (mp_cmp_d (&arr->data[i], 0) == 0);
+    mp_set (&arr->data[i], i);
   }
 
-  mu_check (mparray_resize (&arr, 7) == PRIO_OKAY);
+  mu_ensure (MPArray_resize (arr, 7) == SECSuccess);
   for (int i=10; i<7; i++) {
-    mu_check (mp_cmp_d (&arr.data[i], i) == 0);
+    mu_check (mp_cmp_d (&arr->data[i], i) == 0);
   }
 
-  mparray_clear (&arr);
+  MPArray_clear (arr);
 }

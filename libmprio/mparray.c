@@ -22,106 +22,159 @@
 #include "share.h"
 #include "util.h"
 
-int
-mparray_init (struct mparray *arr, int len)
+MPArray
+MPArray_init (int len)
 {
+  bool okay = true;
+  MPArray arr = malloc (sizeof *arr);
+  if (!arr) 
+    return NULL;
+
   arr->len = len;
   arr->data = calloc (len, sizeof (mp_int));
-  if (!arr->data) 
-    return PRIO_ERROR;
-
-  for (int i=0; i<len; i++) {
-    MP_CHECK (mp_init(&arr->data[i]));
+  if (!arr->data) {
+    free (arr);
+    return NULL;
   }
 
-  return PRIO_OKAY;
+  // Initialize these to NULL so that we can figure
+  // out which allocations failed (if any)
+  for (int i=0; i<len; i++) {
+    MP_DIGITS (&arr->data[i]) = NULL;
+  }
+
+  for (int i=0; i<len; i++) {
+    if (mp_init(&arr->data[i]) != MP_OKAY) {
+      okay = false;
+      break;
+    }
+  }
+
+  if (!okay) {
+    for (int i=0; i<len; i++) {
+      MPArray_clear (arr);
+    }
+    free (arr->data);
+    free (arr);
+  }
+
+  return arr;
 }
 
-int 
-mparray_init_bool (struct mparray *arr, int len, const bool *data_in)
+MPArray
+MPArray_init_bool (int len, const bool *data_in)
 {
-  int error;
-  P_CHECK (mparray_init (arr, len)); 
+  MPArray arr = MPArray_init (len);
+  if (arr == NULL) return NULL;
 
   for (int i=0; i<len; i++) {
     mp_set (&arr->data[i], data_in[i]);
   }
  
-  return PRIO_OKAY; 
+  return arr;
 }
 
-int
-mparray_resize (struct mparray *arr, int newlen)
+SECStatus
+MPArray_resize (MPArray arr, int newlen)
 {
   const int oldlen = arr->len;
-  arr->len = newlen;
 
+  // If shrinking array, free stuff at end of array.
   if (newlen < oldlen) {
     for (int i=newlen; i<oldlen; i++) {
-      mp_clear(&arr->data[i]);
+      mp_clear (&arr->data[i]);
+      MP_DIGITS (&arr->data[i]) = NULL;
     }
   }
 
-  arr->data = realloc (arr->data, sizeof (mp_int) * newlen);
-  if (!arr->data) 
-    return PRIO_ERROR;
+  // Try to resize memory
+  arr->len = newlen;
+  void *ret = realloc (arr->data, sizeof (mp_int) * newlen);
+  if (ret) {
+    arr->data = ret;
+  } else {
+    // realloc failed... clear rest of array memory
+    MPArray_clear (arr);
+    return SECFailure;
+  } 
 
   for (int i=oldlen; i<newlen; i++) {
-    MP_CHECK (mp_init(&arr->data[i]));
+    MP_DIGITS (&arr->data[i]) = NULL;
   }
 
-  return PRIO_OKAY;
+  // Try to allocate new mp_ints at end of array
+  for (int i=oldlen; i<newlen; i++) {
+    if (mp_init(&arr->data[i]) != MP_OKAY) {
+      MPArray_clear (arr);
+      return SECFailure;
+    }
+  }
+
+  return SECSuccess;
 }
 
-int 
-mparray_dup (struct mparray *dst, const struct mparray *src)
+MPArray
+MPArray_dup (const_MPArray src)
 {
-  int error;
-  P_CHECK (mparray_init (dst, src->len)); 
+  MPArray dst = MPArray_init (src->len); 
 
   for (int i=0; i<src->len; i++) {
-    MP_CHECK (mp_copy(&src->data[i], &dst->data[i]));
+    if (mp_copy(&src->data[i], &dst->data[i]) != MP_OKAY) {
+      MPArray_clear (dst);
+      return NULL;
+    }
   }
 
-  return PRIO_OKAY;
+  return dst;
 }
 
-int 
-mparray_init_share (struct mparray *arrA, struct mparray *arrB, 
-    const struct mparray *src, const_PrioConfig cfg)
+SECStatus
+MPArray_init_share (MPArray *arrA, MPArray *arrB, 
+    const_MPArray src, const_PrioConfig cfg)
 {
-  int error;
   const int len = src->len;
-  P_CHECK (mparray_init (arrA, len));
-  P_CHECK (mparray_init (arrB, len));
 
-  for (int i=0; i < len; i++) {
-    P_CHECK (share_int(cfg, &src->data[i], 
-          &arrA->data[i], &arrB->data[i]));
+  *arrA = MPArray_init (len);
+  if (!*arrA) return SECFailure;
+
+  *arrB = MPArray_init (len);
+  if (!*arrB) { 
+    MPArray_clear (*arrA);
+    return SECFailure;
   }
 
-  return PRIO_OKAY;
+  for (int i=0; i < len; i++) {
+    if (share_int(cfg, &src->data[i], 
+          &(*arrA)->data[i], &(*arrB)->data[i]) != SECSuccess) {
+      MPArray_clear (*arrA);
+      MPArray_clear (*arrB);
+      return SECFailure;
+    }
+  }
+
+  return SECSuccess;
 }
 
 void 
-mparray_clear (struct mparray *arr)
+MPArray_clear (MPArray arr)
 {
   for (int i=0; i<arr->len; i++) {
     mp_clear(&arr->data[i]);
   }
   free (arr->data);
+  free (arr);
 }
 
-int 
-mparray_addmod (struct mparray *dst, const struct mparray *to_add, const mp_int *mod)
+SECStatus
+MPArray_addmod (MPArray dst, const_MPArray to_add, const mp_int *mod)
 {
   if (dst->len != to_add->len)
-    return PRIO_ERROR;
+    return SECFailure;
 
   for (int i=0; i<dst->len; i++) {
     MP_CHECK (mp_addmod (&dst->data[i], &to_add->data[i], mod, &dst->data[i])); 
   }
 
-  return PRIO_OKAY;
+  return SECSuccess;
 }
 

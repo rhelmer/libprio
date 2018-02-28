@@ -32,7 +32,7 @@ mu_test_client__new (void)
   }
 
   PrioPacketClient pA, pB;
-  mu_check (PrioPacketClient_new (cfg, data_items, &pA, &pB) == PRIO_OKAY);
+  mu_ensure (PrioPacketClient_new (cfg, data_items, &pA, &pB) == SECSuccess);
 
   PrioPacketClient_clear (pA);
   PrioPacketClient_clear (pB);
@@ -43,7 +43,7 @@ void
 test_client_agg (int nclients)
 {
   PrioConfig cfg = PrioConfig_defaultNew();
-  mu_check (cfg);
+  mu_ensure (cfg);
 
   const int ndata = PrioConfig_numDataFields (cfg);
   bool data_items[ndata];
@@ -54,15 +54,15 @@ test_client_agg (int nclients)
 
   PrioServer sA = PrioServer_new (cfg, 0);
   PrioServer sB = PrioServer_new (cfg, 1);
-  mu_check (sA);
-  mu_check (sB);
+  mu_ensure (sA);
+  mu_ensure (sB);
 
   for (int i=0; i < nclients; i++) {
     PrioPacketClient pA, pB;
-    mu_check (PrioPacketClient_new (cfg, data_items, &pA, &pB) == PRIO_OKAY);
+    mu_ensure (PrioPacketClient_new (cfg, data_items, &pA, &pB) == SECSuccess);
 
-    mu_check (PrioServer_aggregate (sA, pA) == PRIO_OKAY);
-    mu_check (PrioServer_aggregate (sB, pB) == PRIO_OKAY);
+    mu_check (PrioServer_aggregate (sA, pA) == SECSuccess);
+    mu_check (PrioServer_aggregate (sB, pB) == SECSuccess);
 
     PrioPacketClient_clear (pA);
     PrioPacketClient_clear (pB);
@@ -70,11 +70,11 @@ test_client_agg (int nclients)
 
   PrioTotalShare tA = PrioTotalShare_new (sA);
   PrioTotalShare tB = PrioTotalShare_new (sB);
-  mu_check (tA);
-  mu_check (tB);
+  mu_ensure (tA);
+  mu_ensure (tB);
 
   unsigned long output[ndata];
-  mu_check (PrioTotalShare_final (cfg, output, tA, tB) == PRIO_OKAY);
+  mu_check (PrioTotalShare_final (cfg, output, tA, tB) == SECSuccess);
   for (int i=0; i < ndata; i++) {
     unsigned long v = ((i % 3 == 1) || (i % 5 == 3));
     mu_check (output[i] == v*nclients);

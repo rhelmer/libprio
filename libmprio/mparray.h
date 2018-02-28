@@ -18,36 +18,39 @@
 #ifndef __MPARRAY_H__
 #define __MPARRAY_H__
 
-#include <mprio.h>
-#include "libmpi/mpi.h"
-
 struct mparray {
   int len;
   mp_int *data;
 };
 
-int mparray_init (struct mparray *arr, int len);
+typedef struct mparray *MPArray;
+typedef const struct mparray *const_MPArray;
+
+#include <mprio.h>
+#include "libmpi/mpi.h"
+
+MPArray MPArray_init (int len);
 
 // Initializes two arrays and copies into them a secret sharing of 
 // the array in src.
-int mparray_init_share (struct mparray *arrA, struct mparray *arrB, 
-    const struct mparray *src, const_PrioConfig cfg);
+SECStatus MPArray_init_share (MPArray *arrA, MPArray *arrB, 
+    const_MPArray src, const_PrioConfig cfg);
 
 // Initializes array with 0/1 values specified in boolean array `data_in`
-int mparray_init_bool (struct mparray *arr, int len, const bool *data_in);
+MPArray MPArray_init_bool (int len, const bool *data_in);
 
-// Expands or shrinks the mparray to the desired size. If shrinking,
+// Expands or shrinks the MPArray to the desired size. If shrinking,
 // will clear the values on the end of array.
-int mparray_resize (struct mparray *arr, int newlen);
+SECStatus MPArray_resize (MPArray arr, int newlen);
 
 // Initializes dst and creates a duplicate of the array in src. 
-int mparray_dup (struct mparray *dst, const struct mparray *src);
+MPArray MPArray_dup (const_MPArray src);
 
 // For each index i into the array, set:
 //    dst[i] = dst[i] + to_add[i]   (modulo mod)
-int mparray_addmod (struct mparray *dst, const struct mparray *to_add, 
+SECStatus MPArray_addmod (MPArray dst, const_MPArray to_add, 
     const mp_int *mod);
-void mparray_clear (struct mparray *arr);
+void MPArray_clear (MPArray arr);
 
 #endif /* __MPARRAY_H__ */
 

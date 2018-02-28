@@ -27,11 +27,11 @@ void mu_test__eval_poly (void)
   PrioConfig cfg = PrioConfig_defaultNew();
   mu_check (cfg);
 
-  struct mparray coeffs;
-  mu_ensure (mparray_init (&coeffs, 3) == PRIO_OKAY);
-  mp_set (&coeffs.data[0], 2);
-  mp_set (&coeffs.data[1], 8);
-  mp_set (&coeffs.data[2], 3);
+  MPArray coeffs = MPArray_init (3);
+  mu_ensure (coeffs);
+  mp_set (&coeffs->data[0], 2);
+  mp_set (&coeffs->data[1], 8);
+  mp_set (&coeffs->data[2], 3);
 
   mp_int eval_at, out;
   mu_ensure (mp_init (&eval_at) == MP_OKAY);
@@ -39,12 +39,12 @@ void mu_test__eval_poly (void)
   mp_set (&eval_at, 7);
 
   const int val = 3*7*7 + 8*7 + 2;
-  mu_ensure (eval_poly (&out, &coeffs, &eval_at, cfg) == PRIO_OKAY);
+  mu_ensure (eval_poly (&out, coeffs, &eval_at, cfg) == SECSuccess);
 
   mu_check (mp_cmp_d (&out, val) == 0);
   mp_clear (&out);
   mp_clear (&eval_at);
-  mparray_clear (&coeffs);
+  MPArray_clear (coeffs);
 
   PrioConfig_clear (cfg);
 }
@@ -68,7 +68,7 @@ mu_test__verify_new (void)
   mu_check (sB);
 
   PrioPacketClient pA, pB;
-  mu_check (PrioPacketClient_new (cfg, data_items, &pA, &pB) == PRIO_OKAY);
+  mu_check (PrioPacketClient_new (cfg, data_items, &pA, &pB) == SECSuccess);
 
   mp_int fR;
   mp_int gR;
@@ -141,10 +141,10 @@ verify_full (int tweak)
   mu_check (sB);
 
   PrioPacketClient pA, pB;
-  mu_check (PrioPacketClient_new (cfg, data_items, &pA, &pB) == PRIO_OKAY);
+  mu_check (PrioPacketClient_new (cfg, data_items, &pA, &pB) == SECSuccess);
 
   if (tweak == 3) {
-    mp_add_d (&pA->h_points.data[1], 1, &pA->h_points.data[1]);
+    mp_add_d (&pA->h_points->data[1], 1, &pA->h_points->data[1]);
   }
 
   ServerSharedSecret sec = { 
@@ -175,7 +175,7 @@ verify_full (int tweak)
     mp_add_d (&p2A->share_out, 1, &p2B->share_out);
   }
 
-  int shouldBe = tweak ? PRIO_ERROR : PRIO_OKAY;
+  int shouldBe = tweak ? SECFailure : SECSuccess;
   mu_check (PrioVerifier_isValid (vA, p2A, p2B) == shouldBe);
   mu_check (PrioVerifier_isValid (vB, p2A, p2B) == shouldBe);
 

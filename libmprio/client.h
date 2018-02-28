@@ -25,8 +25,8 @@ struct prio_packet_client {
   struct beaver_triple triple;
 
   mp_int f0_share, g0_share, h0_share;
-  struct mparray data_shares;
-  struct mparray h_points;
+  MPArray data_shares;
+  MPArray h_points;
 };
 
 

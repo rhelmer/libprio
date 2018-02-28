@@ -33,10 +33,11 @@
 // We then evaluate f at the 2N-th roots of unity
 // and we return these evaluations as `evals_out`
 // and we return f(0) as `const_term`.
-static int
-data_polynomial_evals(const_PrioConfig cfg, const struct mparray *data_in,
-    struct mparray *evals_out, mp_int *const_term)
+static SECStatus
+data_polynomial_evals(const_PrioConfig cfg, const_MPArray data_in,
+    MPArray evals_out, mp_int *const_term)
 {
+  SECStatus rv;
   const mp_int *mod = &cfg->modulus;
 
   // Number of multiplication gates in the Valid() circuit.
@@ -49,68 +50,78 @@ data_polynomial_evals(const_PrioConfig cfg, const struct mparray *data_in,
   // Big N is n rounded up to a power of two.
   const int N = next_power_of_two (n);
 
-  int error;
-  struct mparray points_f, poly_f;
-  P_CHECK (mparray_init (&points_f, N)); 
-  P_CHECK (mparray_init (&poly_f, N)); 
+  // TODO: Error handling
+  MPArray points_f = MPArray_init (N);
+  if (!points_f) return SECFailure;
+  MPArray poly_f = MPArray_init (N);
+  if (!poly_f) return SECFailure;
 
   // Set constant term f(0) to random
-  P_CHECK (rand_int (&points_f.data[0], mod)); 
-  P_CHECK (mp_copy (&points_f.data[0], const_term)); 
+  P_CHECKC (rand_int (&points_f->data[0], mod)); 
+  MP_CHECKC (mp_copy (&points_f->data[0], const_term)); 
 
   // Set other values of f(x)
   for (int i=1; i<n; i++) {
-    mp_copy (&data_in->data[i-1], &points_f.data[i]);
+    MP_CHECKC (mp_copy (&data_in->data[i-1], &points_f->data[i]));
   }
 
   // Interpolate through the Nth roots of unity
-  P_CHECK (fft(&poly_f, &points_f, cfg, true)); 
+  P_CHECKC (fft(poly_f, points_f, cfg, true)); 
 
   // Evaluate at all 2N-th roots of unity. 
   // To do so, first resize the eval arrays and fill upper
   // values with zeros.
-  P_CHECK (mparray_resize (&poly_f, 2*N)); 
-  P_CHECK (mparray_resize (evals_out, 2*N)); 
+  if ((rv = MPArray_resize (poly_f, 2*N)) != MP_OKAY) {
+    MPArray_clear (points_f); 
+    return rv;
+  }
+
+  P_CHECKC (MPArray_resize (evals_out, 2*N)); 
   
   // Evaluate at the 2N-th roots of unity
-  P_CHECK (fft(evals_out, &poly_f, cfg, false)); 
+  P_CHECKC (fft(evals_out, poly_f, cfg, false)); 
 
-  mparray_clear (&points_f);
-  mparray_clear (&poly_f);
+cleanup:
+  MPArray_clear (points_f);
+  MPArray_clear (poly_f);
 
-  return PRIO_OKAY;
+  return rv;
 }
 
 
-static int
-share_polynomials (const_PrioConfig cfg, const struct mparray *data_in,
+static SECStatus
+share_polynomials (const_PrioConfig cfg, const_MPArray data_in,
     PrioPacketClient pA, PrioPacketClient pB)
 {
-  int error;
+  int rv;
   const mp_int *mod = &cfg->modulus;
 
-  const struct mparray *points_f = data_in;
-  struct mparray points_g;
+  const_MPArray points_f = data_in;
 
-  P_CHECK (mparray_dup (&points_g, points_f)); 
+  // TODO: Error handling
+  MPArray points_g = MPArray_dup (points_f);
+  if (!points_g) return SECFailure;
+
   for (int i=0; i<points_f->len; i++) {
     // For each input value x_i, we compute x_i * (x_i-1).
     //    f(i) = x_i
     //    g(i) = x_i - 1
-    mp_sub_d (&points_g.data[i], 1, &points_g.data[i]);
-    mp_mod (&points_g.data[i], mod, &points_g.data[i]);
+    mp_sub_d (&points_g->data[i], 1, &points_g->data[i]);
+    mp_mod (&points_g->data[i], mod, &points_g->data[i]);
   }
 
   mp_int f0, g0;
   MP_CHECK (mp_init (&f0)); 
   MP_CHECK (mp_init (&g0)); 
 
-  struct mparray evals_f_2N, evals_g_2N;
-  P_CHECK (mparray_init (&evals_f_2N, 0)); 
-  P_CHECK (mparray_init (&evals_g_2N, 0)); 
+  // TODO: Error handling
+  MPArray evals_f_2N = MPArray_init (0);
+  if (!evals_f_2N) return SECFailure;
+  MPArray evals_g_2N = MPArray_init (0);
+  if (!evals_g_2N) return SECFailure;
 
-  P_CHECK (data_polynomial_evals(cfg, points_f, &evals_f_2N, &f0));
-  P_CHECK (data_polynomial_evals(cfg, &points_g, &evals_g_2N, &g0));
+  P_CHECK (data_polynomial_evals(cfg, points_f, evals_f_2N, &f0));
+  P_CHECK (data_polynomial_evals(cfg, points_g, evals_g_2N, &g0));
 
   // Must send to each server a share of the points
   //    f(0),   g(0),   and   h(0) = f(0)*g(0)
@@ -121,43 +132,46 @@ share_polynomials (const_PrioConfig cfg, const struct mparray *data_in,
 
   P_CHECK (share_int (cfg, &f0, &pA->h0_share, &pB->h0_share)); 
 
-  const int lenN = (evals_f_2N.len/2);
-  P_CHECK (mparray_init (&pA->h_points, lenN)); 
-  P_CHECK (mparray_init (&pB->h_points, lenN)); 
+  const int lenN = (evals_f_2N->len/2);
+  pA->h_points = MPArray_init (lenN); 
+  if (!pA->h_points) return SECFailure;
+  pB->h_points = MPArray_init (lenN); 
+  if (!pB->h_points) return SECFailure;
 
   // We need to send to the servers the evaluations of
   //   f(r) * g(r)
   // for all 2N-th roots of unity r that are not also
   // N-th roots of unity.
   int j = 0;
-  for (int i = 1; i < evals_f_2N.len; i += 2) {
-    MP_CHECK (mp_mulmod (&evals_f_2N.data[i], &evals_g_2N.data[i], mod, &f0));
-    P_CHECK (share_int (cfg, &f0, &pA->h_points.data[j], &pB->h_points.data[j])); 
+  for (int i = 1; i < evals_f_2N->len; i += 2) {
+    MP_CHECK (mp_mulmod (&evals_f_2N->data[i], &evals_g_2N->data[i], mod, &f0));
+    P_CHECK (share_int (cfg, &f0, 
+          &pA->h_points->data[j], &pB->h_points->data[j])); 
     j++;
   }
 
-  for (int i = 0; i < evals_f_2N.len; i += 2) {
-    MP_CHECK (mp_mulmod (&evals_f_2N.data[i], &evals_g_2N.data[i], mod, &f0));
+  for (int i = 0; i < evals_f_2N->len; i += 2) {
+    MP_CHECK (mp_mulmod (&evals_f_2N->data[i], &evals_g_2N->data[i], mod, &f0));
   }
 
-  mparray_clear (&evals_f_2N);
-  mparray_clear (&evals_g_2N);
-  mparray_clear (&points_g);
+  MPArray_clear (evals_f_2N);
+  MPArray_clear (evals_g_2N);
+  MPArray_clear (points_g);
   mp_clear (&f0);
   mp_clear (&g0);
-  return PRIO_OKAY;
+  return SECSuccess;
 }
 
-static int
+static SECStatus
 init_objects(PrioPacketClient *ptr)
 {
   if (!ptr)
-    return PRIO_ERROR; 
+    return SECFailure; 
 
   *ptr = malloc (sizeof (**ptr));
-  if (!*ptr) return PRIO_ERROR;
+  if (!*ptr) return SECFailure;
 
-  int error;
+  int rv;
   PrioPacketClient p = *ptr;
   P_CHECK (triple_new (&p->triple));
 
@@ -165,16 +179,16 @@ init_objects(PrioPacketClient *ptr)
   MP_CHECK (mp_init (&p->g0_share));
   MP_CHECK (mp_init (&p->h0_share));
 
-  return PRIO_OKAY;
+  return SECSuccess;
 }
 
-int 
+SECStatus
 PrioPacketClient_new (const_PrioConfig cfg, const bool *data_in,
     PrioPacketClient *ptrA, PrioPacketClient *ptrB)
 {
-  int error;
+  SECStatus rv;
 
-  if (!data_in) return PRIO_ERROR; 
+  if (!data_in) return SECFailure; 
 
   P_CHECK (init_objects (ptrA)); 
   P_CHECK (init_objects (ptrB)); 
@@ -184,21 +198,23 @@ PrioPacketClient_new (const_PrioConfig cfg, const bool *data_in,
 
   P_CHECK (triple_rand (cfg, &pA->triple, &pB->triple)); 
 
-  struct mparray client_data;
-  P_CHECK (mparray_init_bool (&client_data, cfg->num_data_fields, data_in));
-  P_CHECK (mparray_init_share (&pA->data_shares, &pB->data_shares, &client_data, cfg)); 
-  P_CHECK (share_polynomials (cfg, &client_data, pA, pB)); 
+  // TODO: Error handling
+  MPArray client_data = MPArray_init_bool (cfg->num_data_fields, data_in);
+  if (!client_data) return SECFailure;
+  P_CHECK (MPArray_init_share (&pA->data_shares, &pB->data_shares, 
+        client_data, cfg)); 
+  P_CHECK (share_polynomials (cfg, client_data, pA, pB)); 
 
-  mparray_clear (&client_data);
+  MPArray_clear (client_data);
 
-  return PRIO_OKAY;
+  return SECSuccess;
 }
 
 void
 PrioPacketClient_clear (PrioPacketClient p)
 {
-  mparray_clear (&p->h_points);
-  mparray_clear (&p->data_shares);
+  MPArray_clear (p->h_points);
+  MPArray_clear (p->data_shares);
   triple_clear (&p->triple);
   mp_clear (&p->f0_share);
   mp_clear (&p->g0_share);

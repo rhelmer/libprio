@@ -22,25 +22,36 @@
 #include "util.h"
 
 
-int 
+SECStatus
 share_int (const struct prio_config *cfg, const mp_int *src, 
     mp_int *shareA, mp_int *shareB)
 {
-  int error;
+  SECStatus rv;
   P_CHECK (rand_int (shareA, &cfg->modulus)); 
   MP_CHECK (mp_submod (src, shareA, &cfg->modulus, shareB));
 
-  return PRIO_OKAY;
+  return SECSuccess;
 }
 
-int 
+SECStatus
 triple_new (struct beaver_triple *triple)
 {
-  MP_CHECK (mp_init (&triple->a)); 
-  MP_CHECK (mp_init (&triple->b)); 
-  MP_CHECK (mp_init (&triple->c)); 
+  MP_DIGITS (&triple->a) = NULL;
+  MP_DIGITS (&triple->b) = NULL;
+  MP_DIGITS (&triple->c) = NULL;
 
-  return PRIO_OKAY;
+  SECStatus rv;
+  MP_CHECKC (mp_init (&triple->a)); 
+  MP_CHECKC (mp_init (&triple->b)); 
+  MP_CHECKC (mp_init (&triple->c)); 
+
+  return SECSuccess;
+
+cleanup:
+  mp_clear (&triple->a);
+  mp_clear (&triple->b);
+  mp_clear (&triple->c);
+  return rv;
 }
 
 
@@ -52,12 +63,12 @@ triple_clear (struct beaver_triple *triple)
   mp_clear (&triple->c);
 }
 
-int 
+SECStatus
 triple_rand (const struct prio_config *cfg, 
     struct beaver_triple *triple_1, 
     struct beaver_triple *triple_2)
 {
-  int error;
+  SECStatus rv;
 
   // TODO: Can shorten this code using share_int()
 
@@ -89,5 +100,5 @@ triple_rand (const struct prio_config *cfg,
   // Now we should have random tuples satisfying:
   //   (a1 + a2) (b1 + b2) = c1 + c2
 
-  return PRIO_OKAY;
+  return SECSuccess;
 }

@@ -32,9 +32,9 @@ PrioServer_new (const_PrioConfig cfg, int server_idx)
   if (!s) return NULL;
   s->cfg = cfg;
   s->idx = server_idx;
-  
-  if (mparray_init (&s->data_shares, s->cfg->num_data_fields) != PRIO_OKAY)
-    return NULL;
+ 
+  s->data_shares = MPArray_init (s->cfg->num_data_fields);
+  if (!s->data_shares) return NULL;
 
   return s;
 }
@@ -42,14 +42,14 @@ PrioServer_new (const_PrioConfig cfg, int server_idx)
 void 
 PrioServer_clear (PrioServer s)
 {
-  mparray_clear (&s->data_shares);
+  MPArray_clear (s->data_shares);
   free(s);
 }
 
-int 
+SECStatus
 PrioServer_aggregate (PrioServer s, const_PrioPacketClient p)
 {
-  return mparray_addmod (&s->data_shares, &p->data_shares, &s->cfg->modulus);  
+  return MPArray_addmod (s->data_shares, p->data_shares, &s->cfg->modulus);  
 }
 
 PrioTotalShare 
@@ -57,44 +57,45 @@ PrioTotalShare_new (const_PrioServer s)
 {
   PrioTotalShare t = malloc (sizeof (*t));
   if (!t) return NULL;
-  
-  if (mparray_dup (&t->data_shares, &s->data_shares) != PRIO_OKAY)
-    return NULL;
+
+  t->data_shares = MPArray_dup (s->data_shares);
+  if (!t->data_shares) return NULL;
 
   return t;
 }
 
-int PrioTotalShare_final (const_PrioConfig cfg, 
+SECStatus
+PrioTotalShare_final (const_PrioConfig cfg, 
     unsigned long *output,
     const_PrioTotalShare tA, const_PrioTotalShare tB)
 {
   mp_int tmp;
   MP_CHECK (mp_init (&tmp));
-  if (tA->data_shares.len != cfg->num_data_fields)
-    return PRIO_ERROR;
-  if (tA->data_shares.len != tB->data_shares.len)
-    return PRIO_ERROR;
+  if (tA->data_shares->len != cfg->num_data_fields)
+    return SECFailure;
+  if (tA->data_shares->len != tB->data_shares->len)
+    return SECFailure;
 
   for (int i=0; i<cfg->num_data_fields; i++) {
-    MP_CHECK (mp_addmod(&tA->data_shares.data[i], &tB->data_shares.data[i], 
+    MP_CHECK (mp_addmod(&tA->data_shares->data[i], &tB->data_shares->data[i], 
           &cfg->modulus, &tmp));
 
     output[i] = tmp.dp[0];
   }
 
   mp_clear (&tmp);
-  return PRIO_OKAY;
+  return SECSuccess;
 }
 
 void 
 PrioTotalShare_clear (PrioTotalShare t)
 {
-  mparray_clear (&t->data_shares);
+  MPArray_clear (t->data_shares);
   free (t);
 }
 
-static int
-eval_poly (mp_int *value, const struct mparray *coeffs, const mp_int *eval_at, const_PrioConfig cfg)
+static SECStatus
+eval_poly (mp_int *value, const_MPArray coeffs, const mp_int *eval_at, const_PrioConfig cfg)
 { 
   const int n = coeffs->len;
   mp_int tmp;
@@ -108,30 +109,30 @@ eval_poly (mp_int *value, const struct mparray *coeffs, const mp_int *eval_at, c
   }
 
   mp_clear (&tmp);
-  return PRIO_OKAY;
+  return SECSuccess;
 }
 
-static int
-interp_evaluate (mp_int *value, const struct mparray *poly_points, 
+static SECStatus
+interp_evaluate (mp_int *value, const_MPArray poly_points, 
     const mp_int *eval_at, const_PrioConfig cfg)
 {
-  int error;
+  SECStatus rv;
   const int N = poly_points->len;
-  struct mparray coeffs;
-  P_CHECK (mparray_init (&coeffs, N));
+  MPArray coeffs = MPArray_init (N);
+  if (!coeffs) return SECFailure;
 
   mp_int roots[N];
   fft_get_roots (roots, N, cfg, false);
 
   // Interpolate polynomial through roots of unity
-  P_CHECK (fft (&coeffs, poly_points, cfg, true)) 
-  P_CHECK (eval_poly (value, &coeffs, eval_at, cfg));
+  P_CHECK (fft (coeffs, poly_points, cfg, true)) 
+  P_CHECK (eval_poly (value, coeffs, eval_at, cfg));
 
-  mparray_clear (&coeffs);
-  return PRIO_OKAY;
+  MPArray_clear (coeffs);
+  return SECSuccess;
 }
 
-static int
+static SECStatus
 compute_shares (PrioVerifier v, ServerSharedSecret secret, const_PrioPacketClient p)
 {
   const int n = v->cfg->num_data_fields + 1;
@@ -148,47 +149,46 @@ compute_shares (PrioVerifier v, ServerSharedSecret secret, const_PrioPacketClien
   // enough.
   MP_CHECK (mp_mod (&eval_at, &v->cfg->modulus, &eval_at));
 
-  struct mparray points_f, points_g, points_h;
-  if (mparray_init (&points_f, N) != PRIO_OKAY)
-    return PRIO_ERROR;
-  if (mparray_init (&points_g, N) != PRIO_OKAY)
-    return PRIO_ERROR;
-  if (mparray_init (&points_h, 2*N) != PRIO_OKAY)
-    return PRIO_ERROR;
+  MPArray points_f = MPArray_init (N);
+  if (!points_f) return SECFailure;
+  MPArray points_g = MPArray_init (N);
+  if (!points_g) return SECFailure;
+  MPArray points_h = MPArray_init (2*N);
+  if (!points_h) return SECFailure;
 
   // Client sends us the values of f(0) and g(0)
-  MP_CHECK (mp_copy(&p->f0_share, &points_f.data[0]));
-  MP_CHECK (mp_copy(&p->g0_share, &points_g.data[0]));
-  MP_CHECK (mp_copy(&p->h0_share, &points_h.data[0])); 
+  MP_CHECK (mp_copy(&p->f0_share, &points_f->data[0]));
+  MP_CHECK (mp_copy(&p->g0_share, &points_g->data[0]));
+  MP_CHECK (mp_copy(&p->h0_share, &points_h->data[0])); 
 
   for (int i=1; i<n; i++) {
     // [f](i) = i-th data share
-    MP_CHECK (mp_copy(&p->data_shares.data[i-1], &points_f.data[i]));
+    MP_CHECK (mp_copy(&p->data_shares->data[i-1], &points_f->data[i]));
 
     // [g](i) = i-th data share minus 1
     // Only need to shift the share for 0-th server
-    MP_CHECK (mp_copy(&points_f.data[i], &points_g.data[i]));
+    MP_CHECK (mp_copy(&points_f->data[i], &points_g->data[i]));
     if (!v->idx) {
-      MP_CHECK (mp_sub_d(&points_g.data[i], 1, &points_g.data[i]));
-      MP_CHECK (mp_mod(&points_g.data[i], &v->cfg->modulus, &points_g.data[i]));
+      MP_CHECK (mp_sub_d(&points_g->data[i], 1, &points_g->data[i]));
+      MP_CHECK (mp_mod(&points_g->data[i], &v->cfg->modulus, &points_g->data[i]));
     }
   }
 
   int j = 0;
   for (int i=1; i<2*N; i+=2) {
-    MP_CHECK (mp_copy(&p->h_points.data[j++], &points_h.data[i]));
+    MP_CHECK (mp_copy(&p->h_points->data[j++], &points_h->data[i]));
   }
 
-  int error;
-  P_CHECK (interp_evaluate (&v->share_fR, &points_f, &eval_at, v->cfg));
-  P_CHECK (interp_evaluate (&v->share_gR, &points_g, &eval_at, v->cfg));
-  P_CHECK (interp_evaluate (&v->share_hR, &points_h, &eval_at, v->cfg));
+  SECStatus rv;
+  P_CHECK (interp_evaluate (&v->share_fR, points_f, &eval_at, v->cfg));
+  P_CHECK (interp_evaluate (&v->share_gR, points_g, &eval_at, v->cfg));
+  P_CHECK (interp_evaluate (&v->share_hR, points_h, &eval_at, v->cfg));
 
-  mparray_clear (&points_f);
-  mparray_clear (&points_g);
-  mparray_clear (&points_h);
+  MPArray_clear (points_f);
+  MPArray_clear (points_g);
+  MPArray_clear (points_h);
   mp_clear (&eval_at);
-  return PRIO_OKAY;
+  return SECSuccess;
 }
 
 PrioVerifier PrioVerifier_new (PrioServer s, const_PrioPacketClient p, 
@@ -330,6 +330,6 @@ PrioVerifier_isValid (const_PrioVerifier v,
   bool good = (mp_cmp_d (&res, 0) == 0);
 
   mp_clear (&res);
-  return good ? PRIO_OKAY : PRIO_ERROR;
+  return good ? SECSuccess : SECFailure;
 }
 

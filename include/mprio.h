@@ -17,6 +17,7 @@
 #ifndef __PRIO_H__
 #define __PRIO_H__
 
+#include <nss/seccomon.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -27,9 +28,6 @@
  * Setting this value to 20 is very conservative.
  */
 #define SOUNDNESS_PARAM 20
-
-#define PRIO_OKAY 0
-#define PRIO_ERROR 1
 
 typedef const unsigned char ServerSharedSecret[SOUNDNESS_PARAM];
 
@@ -62,21 +60,21 @@ PrioConfig PrioConfig_defaultNew (void);
 int PrioConfig_numDataFields (const_PrioConfig cfg);
 void PrioConfig_clear (PrioConfig cfg);
 
-int PrioPacketClient_new (const_PrioConfig cfg, const bool *data_in,
+SECStatus PrioPacketClient_new (const_PrioConfig cfg, const bool *data_in,
     PrioPacketClient *for_server_a, PrioPacketClient *for_server_b);
 void PrioPacketClient_clear (PrioPacketClient p);
 
 PrioServer PrioServer_new (const_PrioConfig cfg, int server_idx);
 void PrioServer_clear (PrioServer s);
 
-int PrioServer_aggregate (PrioServer s, const_PrioPacketClient p);
+SECStatus PrioServer_aggregate (PrioServer s, const_PrioPacketClient p);
 
 PrioTotalShare PrioTotalShare_new (const_PrioServer s);
 void PrioTotalShare_clear (PrioTotalShare t);
 
 // Output must have enough space to store a vector with one entry
 // per data field.
-int PrioTotalShare_final (const_PrioConfig cfg, unsigned long *output,
+SECStatus PrioTotalShare_final (const_PrioConfig cfg, unsigned long *output,
     const_PrioTotalShare tA, const_PrioTotalShare tB);
 
 // Don't destroy p until after verification is done.
@@ -91,7 +89,7 @@ void PrioPacketVerify1_clear (PrioPacketVerify1 p);
 
 PrioPacketVerify2 PrioVerifier_packet2 (const_PrioVerifier v,
     const_PrioPacketVerify1 pA, const_PrioPacketVerify1 pB);
-int PrioVerifier_isValid (const_PrioVerifier v,
+SECStatus PrioVerifier_isValid (const_PrioVerifier v,
     const_PrioPacketVerify2 pA, const_PrioPacketVerify2 pB);
 void PrioPacketVerify2_clear (PrioPacketVerify2 p);
 

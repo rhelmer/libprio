@@ -23,9 +23,8 @@
 #include "libmpi/mpi.h"
 #include "mparray.h"
 
-// TOOD: Add error handling
-int fft(struct mparray *points_out, 
-    const struct mparray *points_in, const_PrioConfig cfg, bool invert);
+SECStatus fft(MPArray points_out, const_MPArray points_in, 
+    const_PrioConfig cfg, bool invert);
 
 // Get an array
 //   (r^0, r^1, r^2, ... )

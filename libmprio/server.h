@@ -22,14 +22,14 @@
 #include "share.h"
 
 struct prio_total_share {
-  struct mparray data_shares;
+  MPArray data_shares;
 };
 
 struct prio_server {
   const_PrioConfig cfg;
   // Index of the server (0 or 1)
   int idx;
-  struct mparray data_shares;
+  MPArray data_shares;
 };
 
 struct prio_verifier {
