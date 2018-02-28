@@ -21,12 +21,19 @@
 #include <mprio.h>
 #include "libmpi/mpi.h"
 
+
 #define P_CHECK(s) \
   do { \
     if((rv = (s)) != SECSuccess) \
     return rv; \
   } while(0);
-#define P_CHECKN(s) do { if((s) != SECSuccess) return NULL; } while(0);
+#define P_CHECKA(s) \
+  do { \
+    if((s) == NULL) {\
+      rv = SECFailure;\
+      goto cleanup;\
+    }\
+  } while(0);
 #define P_CHECKC(s) \
   do { \
     if((rv = (s)) != SECSuccess) { \
@@ -35,6 +42,13 @@
   } while(0);
 #define MP_CHECK(s) do { if((s) != MP_OKAY) return SECFailure; } while(0);
 #define MP_CHECKN(s) do { if((s) != MP_OKAY) return NULL; } while(0);
+#define MP_CHECKA(s) \
+  do { \
+    if((s) == NULL) { \
+       rv = SECFailure; \
+       goto cleanup; \
+    }\
+  } while(0);
 #define MP_CHECKC(s) \
   do { \
     if((s) != MP_OKAY) { \

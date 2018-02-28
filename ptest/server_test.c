@@ -25,7 +25,7 @@
 void mu_test__eval_poly (void) 
 {
   PrioConfig cfg = PrioConfig_defaultNew();
-  mu_check (cfg);
+  mu_ensure (cfg);
 
   MPArray coeffs = MPArray_init (3);
   mu_ensure (coeffs);
@@ -53,7 +53,7 @@ void
 mu_test__verify_new (void)
 {
   PrioConfig cfg = PrioConfig_defaultNew();
-  mu_check (cfg);
+  mu_ensure (cfg);
 
   const int ndata = PrioConfig_numDataFields (cfg);
   bool data_items[ndata];
@@ -64,11 +64,11 @@ mu_test__verify_new (void)
 
   PrioServer sA = PrioServer_new (cfg, 0);
   PrioServer sB = PrioServer_new (cfg, 1);
-  mu_check (sA);
-  mu_check (sB);
+  mu_ensure (sA);
+  mu_ensure (sB);
 
   PrioPacketClient pA, pB;
-  mu_check (PrioPacketClient_new (cfg, data_items, &pA, &pB) == SECSuccess);
+  mu_ensure (PrioPacketClient_new (cfg, data_items, &pA, &pB) == SECSuccess);
 
   mp_int fR;
   mp_int gR;
@@ -126,7 +126,7 @@ void
 verify_full (int tweak)
 {
   PrioConfig cfg = PrioConfig_defaultNew();
-  mu_check (cfg);
+  mu_ensure (cfg);
 
   const int ndata = PrioConfig_numDataFields (cfg);
   bool data_items[ndata];
@@ -137,11 +137,11 @@ verify_full (int tweak)
 
   PrioServer sA = PrioServer_new (cfg, 0);
   PrioServer sB = PrioServer_new (cfg, 1);
-  mu_check (sA);
-  mu_check (sB);
+  mu_ensure (sA);
+  mu_ensure (sB);
 
   PrioPacketClient pA, pB;
-  mu_check (PrioPacketClient_new (cfg, data_items, &pA, &pB) == SECSuccess);
+  mu_ensure (PrioPacketClient_new (cfg, data_items, &pA, &pB) == SECSuccess);
 
   if (tweak == 3) {
     mp_add_d (&pA->h_points->data[1], 1, &pA->h_points->data[1]);

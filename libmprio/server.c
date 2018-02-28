@@ -210,7 +210,8 @@ PrioVerifier PrioVerifier_new (PrioServer s, const_PrioPacketClient p,
   //
   // Compute share of f(r), g(r), h(r)
 
-  P_CHECKN (compute_shares (v, secret, p));
+  if (compute_shares (v, secret, p) != SECSuccess)
+    return NULL;
 
   return v;
 }

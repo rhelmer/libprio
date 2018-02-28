@@ -25,17 +25,15 @@
 MPArray
 MPArray_init (int len)
 {
-  bool okay = true;
+  SECStatus rv = SECSuccess;
   MPArray arr = malloc (sizeof *arr);
   if (!arr) 
     return NULL;
 
+  arr->data = NULL;
   arr->len = len;
-  arr->data = calloc (len, sizeof (mp_int));
-  if (!arr->data) {
-    free (arr);
-    return NULL;
-  }
+
+  P_CHECKA(arr->data = calloc (len, sizeof (mp_int)));
 
   // Initialize these to NULL so that we can figure
   // out which allocations failed (if any)
@@ -44,18 +42,13 @@ MPArray_init (int len)
   }
 
   for (int i=0; i<len; i++) {
-    if (mp_init(&arr->data[i]) != MP_OKAY) {
-      okay = false;
-      break;
-    }
+    MP_CHECKC (mp_init(&arr->data[i])) 
   }
 
-  if (!okay) {
-    for (int i=0; i<len; i++) {
-      MPArray_clear (arr);
-    }
-    free (arr->data);
-    free (arr);
+cleanup:
+  if (rv != SECSuccess) {
+    MPArray_clear (arr);
+    return NULL;
   }
 
   return arr;
@@ -77,40 +70,32 @@ MPArray_init_bool (int len, const bool *data_in)
 SECStatus
 MPArray_resize (MPArray arr, int newlen)
 {
+  // TODO: Do this using realloc()
+  SECStatus rv = SECSuccess;
   const int oldlen = arr->len;
 
-  // If shrinking array, free stuff at end of array.
-  if (newlen < oldlen) {
-    for (int i=newlen; i<oldlen; i++) {
-      mp_clear (&arr->data[i]);
-      MP_DIGITS (&arr->data[i]) = NULL;
+  MPArray newarr = MPArray_init (newlen); 
+  if (newarr == NULL)
+    return SECFailure;
+
+  // Copy data into new array
+  for (int i = 0; i < newlen && i < oldlen; i++) {
+    if (mp_copy (&arr->data[i], &newarr->data[i]) != MP_OKAY) {
+      rv = SECFailure;
+      break;
     }
   }
 
-  // Try to resize memory
-  arr->len = newlen;
-  void *ret = realloc (arr->data, sizeof (mp_int) * newlen);
-  if (ret) {
-    arr->data = ret;
+  if (rv == SECSuccess) {
+    // Swap old and new arrays
+    MPArray oldarr = arr;
+    *arr = *newarr;
+    MPArray_clear (oldarr);
   } else {
-    // realloc failed... clear rest of array memory
-    MPArray_clear (arr);
-    return SECFailure;
+    MPArray_clear (newarr);
   } 
 
-  for (int i=oldlen; i<newlen; i++) {
-    MP_DIGITS (&arr->data[i]) = NULL;
-  }
-
-  // Try to allocate new mp_ints at end of array
-  for (int i=oldlen; i<newlen; i++) {
-    if (mp_init(&arr->data[i]) != MP_OKAY) {
-      MPArray_clear (arr);
-      return SECFailure;
-    }
-  }
-
-  return SECSuccess;
+  return rv;
 }
 
 MPArray
@@ -129,39 +114,33 @@ MPArray_dup (const_MPArray src)
 }
 
 SECStatus
-MPArray_init_share (MPArray *arrA, MPArray *arrB, 
+MPArray_set_share (MPArray arrA, MPArray arrB, 
     const_MPArray src, const_PrioConfig cfg)
 {
+  SECStatus rv = SECSuccess;
+  if (arrA->len != src->len || arrB->len != src->len)
+    return SECFailure;
+
   const int len = src->len;
 
-  *arrA = MPArray_init (len);
-  if (!*arrA) return SECFailure;
-
-  *arrB = MPArray_init (len);
-  if (!*arrB) { 
-    MPArray_clear (*arrA);
-    return SECFailure;
-  }
-
   for (int i=0; i < len; i++) {
-    if (share_int(cfg, &src->data[i], 
-          &(*arrA)->data[i], &(*arrB)->data[i]) != SECSuccess) {
-      MPArray_clear (*arrA);
-      MPArray_clear (*arrB);
-      return SECFailure;
-    }
+    P_CHECK(share_int(cfg, &src->data[i], &arrA->data[i], &arrB->data[i])); 
   }
 
-  return SECSuccess;
+  return rv;
 }
 
 void 
 MPArray_clear (MPArray arr)
 {
-  for (int i=0; i<arr->len; i++) {
-    mp_clear(&arr->data[i]);
+  if (arr == NULL) return;
+
+  if (arr->data != NULL) {
+    for (int i=0; i<arr->len; i++) {
+      mp_clear(&arr->data[i]);
+    }
+    free (arr->data); 
   }
-  free (arr->data);
   free (arr);
 }
 

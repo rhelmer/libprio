@@ -41,32 +41,41 @@ initialize_roots (MPArray arr, const char *values[])
 PrioConfig 
 PrioConfig_defaultNew (void)
 {
-  // TODO: Error handling
+  SECStatus rv = SECSuccess;
   PrioConfig cfg = malloc (sizeof (*cfg));
   if (!cfg)
     return NULL;
 
-  MP_CHECKN (mp_init (&cfg->modulus));
-  MP_CHECKN (mp_init (&cfg->inv2));
-
-  MP_CHECKN (mp_read_radix (&cfg->modulus, Modulus, 16)); 
-
-  // Compute  2^{-1} modulo M
-  mp_set (&cfg->inv2, 2);
-  MP_CHECKN (mp_invmod (&cfg->inv2, &cfg->modulus, &cfg->inv2)); 
-
   cfg->num_data_fields = DefaultNumDataFields;
   cfg->n_roots = 1 << Generator2Order;
-  if (cfg->num_data_fields >= cfg->n_roots)
+  MP_DIGITS(&cfg->modulus) = NULL;
+  MP_DIGITS(&cfg->inv2) = NULL;
+  cfg->roots = NULL;
+  cfg->rootsInv = NULL;
+
+  if (cfg->num_data_fields >= cfg->n_roots) {
+    rv = SECFailure;
+    goto cleanup;
+  }
+
+  MP_CHECKC (mp_init (&cfg->modulus));
+  MP_CHECKC (mp_read_radix (&cfg->modulus, Modulus, 16)); 
+
+  // Compute  2^{-1} modulo M
+  MP_CHECKC (mp_init (&cfg->inv2));
+  mp_set (&cfg->inv2, 2);
+  MP_CHECKC (mp_invmod (&cfg->inv2, &cfg->modulus, &cfg->inv2)); 
+
+  P_CHECKA (cfg->roots = MPArray_init (cfg->n_roots));
+  P_CHECKA (cfg->rootsInv = MPArray_init (cfg->n_roots));
+  MP_CHECKC (initialize_roots (cfg->roots, Roots)); 
+  MP_CHECKC (initialize_roots (cfg->rootsInv, RootsInv)); 
+
+cleanup:
+  if (rv != SECSuccess) {
+    PrioConfig_clear (cfg);
     return NULL;
-
-  cfg->roots = MPArray_init (cfg->n_roots);
-  if (!cfg->roots) return NULL; 
-  MP_CHECKN (initialize_roots (cfg->roots, Roots)); 
-
-  cfg->rootsInv = MPArray_init (cfg->n_roots);
-  if (!cfg->rootsInv) return NULL;
-  MP_CHECKN (initialize_roots (cfg->rootsInv, RootsInv)); 
+  }
 
   return cfg;
 }
@@ -85,4 +94,5 @@ int
 PrioConfig_numDataFields (const_PrioConfig cfg)
 {
   return cfg->num_data_fields;
+
 }

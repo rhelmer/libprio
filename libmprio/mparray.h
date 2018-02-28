@@ -31,9 +31,10 @@ typedef const struct mparray *const_MPArray;
 
 MPArray MPArray_init (int len);
 
-// Initializes two arrays and copies into them a secret sharing of 
-// the array in src.
-SECStatus MPArray_init_share (MPArray *arrA, MPArray *arrB, 
+// Copies secret sharing of data from src into arrays
+// arrA and arrB. The lengths of the three input arrays
+// must be identical.
+SECStatus MPArray_set_share (MPArray arrA, MPArray arrB, 
     const_MPArray src, const_PrioConfig cfg);
 
 // Initializes array with 0/1 values specified in boolean array `data_in`

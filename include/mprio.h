@@ -60,8 +60,9 @@ PrioConfig PrioConfig_defaultNew (void);
 int PrioConfig_numDataFields (const_PrioConfig cfg);
 void PrioConfig_clear (PrioConfig cfg);
 
-SECStatus PrioPacketClient_new (const_PrioConfig cfg, const bool *data_in,
-    PrioPacketClient *for_server_a, PrioPacketClient *for_server_b);
+PrioPacketClient PrioPacketClient_new (const_PrioConfig cfg);
+SECStatus PrioPacketClient_set_data (const_PrioConfig cfg, const bool *data_in,
+    PrioPacketClient for_server_a, PrioPacketClient for_server_b);
 void PrioPacketClient_clear (PrioPacketClient p);
 
 PrioServer PrioServer_new (const_PrioConfig cfg, int server_idx);

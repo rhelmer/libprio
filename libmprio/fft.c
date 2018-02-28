@@ -71,14 +71,14 @@ fft_interpolate_raw (mp_int *out,
     MP_DIGITS (&rootsSub[i]) = NULL;
   }
 
+  mp_int n_inverse;
+  MP_DIGITS (&n_inverse) = NULL;
+
   for (int i=0; i<nPoints;i++) {
     MP_CHECKC (mp_init (&tmp[i]));
     MP_CHECKC (mp_init (&ySub[i]));
     MP_CHECKC (mp_init (&rootsSub[i]));
   }
-
-  mp_int n_inverse;
-  MP_DIGITS (&n_inverse) = NULL;
 
   MP_CHECK (fft_recurse(out, mod, nPoints, roots, ys, tmp, ySub, rootsSub));
 
@@ -86,9 +86,13 @@ fft_interpolate_raw (mp_int *out,
     MP_CHECKC (mp_init (&n_inverse));
 
     mp_set (&n_inverse, nPoints);
-    MP_CHECK (mp_invmod (&n_inverse, mod, &n_inverse));
+    MP_CHECKC (mp_invmod (&n_inverse, mod, &n_inverse));
     for (int i=0; i<nPoints;i++) {
-      MP_CHECK (mp_mulmod(&out[i], &n_inverse, mod, &out[i]));
+      MP_CHECKC (mp_mulmod(&out[i], &n_inverse, mod, &out[i]));
+      if (i == 3) {
+        rv = SECFailure;
+        goto cleanup;
+      }
     }
   }
 
