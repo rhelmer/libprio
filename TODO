@@ -1,8 +1,10 @@
 
 * Address TODO notes throughout code
-* Use PRG to compress shares
-* Free memory on errors
 * Test error handling
-* Add differential privacy noise to final data output
-* Optimize polynomial evaluation step on servers.
+
+Optimizations/features not yet implemented:
+* Server side compute
+   Optimize polynomial evaluation step on servers.
    O(n log n)  =>  O(n)
+* Use PRG to compress shares on client
+* Add differential privacy noise to final data output

@@ -18,12 +18,14 @@
 #ifndef __RAND_H__
 #define __RAND_H__
 
+#include <nss/seccomon.h>
 #include "libmpi/mpi.h"
 
-int rand_init (void);
+SECStatus rand_init (void);
 void rand_clear (void);
 
-int rand_int (mp_int *out, const mp_int *max);
+SECStatus rand_int (mp_int *out, const mp_int *max);
+SECStatus rand_bytes (unsigned char *out, int n_bytes);
 
 #endif /* __RAND_H__ */
 

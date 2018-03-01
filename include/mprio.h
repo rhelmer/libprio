@@ -29,7 +29,7 @@
  */
 #define SOUNDNESS_PARAM 20
 
-typedef const unsigned char ServerSharedSecret[SOUNDNESS_PARAM];
+typedef unsigned char ServerSharedSecret[SOUNDNESS_PARAM];
 
 /*
  * Opaque types
@@ -82,7 +82,7 @@ SECStatus PrioTotalShare_final (const_PrioConfig cfg, unsigned long *output,
 // shared_secret is a secret value shared between the two 
 // verifying servers.
 PrioVerifier PrioVerifier_new (PrioServer s, const_PrioPacketClient p,
-    ServerSharedSecret secret);
+    const ServerSharedSecret secret);
 void PrioVerifier_clear (PrioVerifier v);
 
 PrioPacketVerify1 PrioVerifier_packet1 (const_PrioVerifier v);

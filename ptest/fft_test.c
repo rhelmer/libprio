@@ -15,6 +15,7 @@
  */
 
 
+#include <stdio.h>
 #include <mprio.h>
 
 #include "libmpi/mpi.h"
@@ -33,8 +34,8 @@ mu_test__fft_one (void)
   MPArray points_out = NULL;
 
   P_CHECKA (cfg = PrioConfig_defaultNew());
-  P_CHECKA (points_in = MPArray_init(1));
-  P_CHECKA (points_out = MPArray_init(1));
+  P_CHECKA (points_in = MPArray_new(1));
+  P_CHECKA (points_out = MPArray_new(1));
 
   mp_set (&points_in->data[0], 3);
   mu_check (fft(points_out, points_in, cfg, false) == SECSuccess);
@@ -94,8 +95,8 @@ mu_test__fft_simple (void)
   }
   
   P_CHECKA (cfg = PrioConfig_defaultNew());
-  P_CHECKA (points_in = MPArray_init (nPoints));
-  P_CHECKA (points_out = MPArray_init (nPoints));
+  P_CHECKA (points_in = MPArray_new (nPoints));
+  P_CHECKA (points_out = MPArray_new (nPoints));
   MP_CHECKC (mp_init (&should_be));
   MP_CHECKC (mp_init (&tmp));
 
@@ -147,9 +148,9 @@ mu_test__fft_invert (void)
   mp_int roots[nPoints];
   
   P_CHECKA (cfg = PrioConfig_defaultNew());
-  P_CHECKA (points_in = MPArray_init (nPoints)); 
-  P_CHECKA (points_out = MPArray_init (nPoints));
-  P_CHECKA (points_out2 = MPArray_init (nPoints));
+  P_CHECKA (points_in = MPArray_new (nPoints)); 
+  P_CHECKA (points_out = MPArray_new (nPoints));
+  P_CHECKA (points_out2 = MPArray_new (nPoints));
 
   fft_get_roots (roots, nPoints, cfg, false);
 

@@ -66,8 +66,8 @@ PrioConfig_defaultNew (void)
   mp_set (&cfg->inv2, 2);
   MP_CHECKC (mp_invmod (&cfg->inv2, &cfg->modulus, &cfg->inv2)); 
 
-  P_CHECKA (cfg->roots = MPArray_init (cfg->n_roots));
-  P_CHECKA (cfg->rootsInv = MPArray_init (cfg->n_roots));
+  P_CHECKA (cfg->roots = MPArray_new (cfg->n_roots));
+  P_CHECKA (cfg->rootsInv = MPArray_new (cfg->n_roots));
   MP_CHECKC (initialize_roots (cfg->roots, Roots)); 
   MP_CHECKC (initialize_roots (cfg->rootsInv, RootsInv)); 
 
@@ -83,6 +83,7 @@ cleanup:
 void 
 PrioConfig_clear (PrioConfig cfg)
 {
+  if (!cfg) return;
   MPArray_clear (cfg->roots);
   MPArray_clear (cfg->rootsInv);
   mp_clear (&cfg->modulus);

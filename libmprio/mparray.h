@@ -29,7 +29,7 @@ typedef const struct mparray *const_MPArray;
 #include <mprio.h>
 #include "libmpi/mpi.h"
 
-MPArray MPArray_init (int len);
+MPArray MPArray_new (int len);
 
 // Copies secret sharing of data from src into arrays
 // arrA and arrB. The lengths of the three input arrays
@@ -38,7 +38,7 @@ SECStatus MPArray_set_share (MPArray arrA, MPArray arrB,
     const_MPArray src, const_PrioConfig cfg);
 
 // Initializes array with 0/1 values specified in boolean array `data_in`
-MPArray MPArray_init_bool (int len, const bool *data_in);
+MPArray MPArray_new_bool (int len, const bool *data_in);
 
 // Expands or shrinks the MPArray to the desired size. If shrinking,
 // will clear the values on the end of array.

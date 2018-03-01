@@ -22,6 +22,7 @@
 
 #include "debug.h"
 #include "rand.h"
+#include "util.h"
 
 
 SECStatus
@@ -37,14 +38,27 @@ rand_init (void)
   return SECSuccess;
 }
 
-SECStatus
-rand_int (mp_int *out, const mp_int *max)
+SECStatus 
+rand_bytes (unsigned char *out, int n_bytes)
 {
   if (!NSS_IsInitialized ()) {
     PRIO_DEBUG ("NSS not initialized. Call rand_init() first.");
     return SECFailure;
   }
 
+  SECStatus rv;
+  if ((rv = PK11_GenerateRandom (out, n_bytes)) != SECSuccess) 
+  {
+    PRIO_DEBUG ("Error calling PK11_GenerateRandom");
+    return SECFailure;
+  }
+
+  return rv;
+}
+
+SECStatus
+rand_int (mp_int *out, const mp_int *max)
+{
   // Ensure max value is > 0
   if (mp_cmp_z (max) == 0)
     return SECFailure;
@@ -58,15 +72,11 @@ rand_int (mp_int *out, const mp_int *max)
 
   do {
 
-    unsigned char rand_bytes[nbytes];
+    unsigned char buf[nbytes];
     SECStatus rv;
-    if ((rv = PK11_GenerateRandom (rand_bytes, nbytes)) != SECSuccess) 
-    {
-      PRIO_DEBUG ("Error calling PK11_GenerateRandom");
-      return SECFailure;
-    }
+    P_CHECK (rand_bytes (buf, nbytes));
 
-    if (mp_read_unsigned_octets (out, rand_bytes, nbytes) != MP_OKAY)
+    if (mp_read_unsigned_octets (out, buf, nbytes) != MP_OKAY)
     {
       PRIO_DEBUG ("Error converting bytes to big integer");
       return SECFailure;

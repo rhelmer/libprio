@@ -78,9 +78,6 @@ test_client_agg (int nclients)
       data_items[i] = (i % 3 == 1) || (i % 5 == 3);
     }
 
-    mu_ensure (sA);
-    mu_ensure (sB);
-
     for (int i=0; i < nclients; i++) {
       P_CHECKC (PrioPacketClient_set_data (cfg, data_items, pA, pB));
       mu_check (PrioServer_aggregate (sA, pA) == SECSuccess);
@@ -96,7 +93,6 @@ test_client_agg (int nclients)
       unsigned long v = ((i % 3 == 1) || (i % 5 == 3));
       mu_check (output[i] == v*nclients);
     }
-
   }
 
   //rv = SECFailure;

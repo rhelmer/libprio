@@ -89,10 +89,6 @@ fft_interpolate_raw (mp_int *out,
     MP_CHECKC (mp_invmod (&n_inverse, mod, &n_inverse));
     for (int i=0; i<nPoints;i++) {
       MP_CHECKC (mp_mulmod(&out[i], &n_inverse, mod, &out[i]));
-      if (i == 3) {
-        rv = SECFailure;
-        goto cleanup;
-      }
     }
   }
 

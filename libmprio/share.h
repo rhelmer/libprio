@@ -27,6 +27,9 @@ struct beaver_triple {
   mp_int c;
 };
 
+typedef struct beaver_triple *BeaverTriple;
+typedef const struct beaver_triple *const_BeaverTriple;
+
 
 /*
  * Use secret sharing to split the int src into two shares.
@@ -35,12 +38,12 @@ struct beaver_triple {
 int share_int (const struct prio_config *cfg, const mp_int *src, 
     mp_int *shareA, mp_int *shareB);
 
-int triple_new (struct beaver_triple *triple);
-void triple_clear (struct beaver_triple *triple);
+BeaverTriple BeaverTriple_new (void);
+void BeaverTriple_clear (BeaverTriple t);
 
-int triple_rand (const struct prio_config *cfg, 
-    struct beaver_triple *triple_a, 
-    struct beaver_triple *triple_b);
+int BeaverTriple_set_rand(const_PrioConfig cfg, 
+    BeaverTriple triple_a, 
+    BeaverTriple triple_b);
 
 #endif /* __SHARE_H__ */
 

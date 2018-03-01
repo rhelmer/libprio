@@ -22,7 +22,7 @@
 #include "share.h"
 
 struct prio_packet_client {
-  struct beaver_triple triple;
+  struct beaver_triple *triple;
 
   mp_int f0_share, g0_share, h0_share;
   MPArray data_shares;

@@ -52,8 +52,8 @@ data_polynomial_evals(const_PrioConfig cfg, const_MPArray data_in,
   // Big N is n rounded up to a power of two.
   const int N = next_power_of_two (n);
 
-  P_CHECKA (points_f = MPArray_init (N));
-  P_CHECKA (poly_f = MPArray_init (N));
+  P_CHECKA (points_f = MPArray_new (N));
+  P_CHECKA (poly_f = MPArray_new (N));
 
   // Set constant term f(0) to random
   P_CHECKC (rand_int (&points_f->data[0], mod)); 
@@ -101,8 +101,8 @@ share_polynomials (const_PrioConfig cfg, const_MPArray data_in,
   MPArray evals_g_2N = NULL;
 
   P_CHECKA (points_g = MPArray_dup (points_f));
-  P_CHECKA (evals_f_2N = MPArray_init (0));
-  P_CHECKA (evals_g_2N = MPArray_init (0));
+  P_CHECKA (evals_f_2N = MPArray_new (0));
+  P_CHECKA (evals_g_2N = MPArray_new (0));
   MP_CHECKC (mp_init (&f0)); 
   MP_CHECKC (mp_init (&g0)); 
 
@@ -163,9 +163,7 @@ PrioPacketClient_new (const_PrioConfig cfg)
   p = malloc (sizeof (*p));
   if (!p) return NULL;
 
-  MP_DIGITS (&p->triple.a) = NULL;
-  MP_DIGITS (&p->triple.b) = NULL;
-  MP_DIGITS (&p->triple.c) = NULL;
+  p->triple = NULL;
   MP_DIGITS (&p->f0_share) = NULL;
   MP_DIGITS (&p->g0_share) = NULL;
   MP_DIGITS (&p->h0_share) = NULL;
@@ -173,14 +171,13 @@ PrioPacketClient_new (const_PrioConfig cfg)
   p->h_points = NULL;
  
   SECStatus rv = SECSuccess; 
-  P_CHECKA (p = malloc (sizeof (*p)));
 
-  P_CHECKC (triple_new (&p->triple));
   MP_CHECKC (mp_init (&p->f0_share)); 
   MP_CHECKC (mp_init (&p->g0_share));
   MP_CHECKC (mp_init (&p->h0_share));
-  P_CHECKA (p->data_shares = MPArray_init (data_len));
-  P_CHECKA (p->h_points = MPArray_init (0));
+  P_CHECKA (p->triple = BeaverTriple_new ());
+  P_CHECKA (p->data_shares = MPArray_new (data_len));
+  P_CHECKA (p->h_points = MPArray_new (0));
 
 cleanup:
   if (rv != SECSuccess) {
@@ -201,8 +198,8 @@ PrioPacketClient_set_data (const_PrioConfig cfg, const bool *data_in,
 
   if (!data_in) return SECFailure; 
  
-  P_CHECKC (triple_rand (cfg, &pA->triple, &pB->triple)); 
-  P_CHECKA (client_data = MPArray_init_bool (data_len, data_in));
+  P_CHECKC (BeaverTriple_set_rand (cfg, pA->triple, pB->triple)); 
+  P_CHECKA (client_data = MPArray_new_bool (data_len, data_in));
   P_CHECKC (MPArray_set_share (pA->data_shares, pB->data_shares, client_data, cfg)); 
   P_CHECKC (share_polynomials (cfg, client_data, pA, pB)); 
 
@@ -218,7 +215,7 @@ PrioPacketClient_clear (PrioPacketClient p)
   if (p == NULL) return;
   MPArray_clear (p->h_points);
   MPArray_clear (p->data_shares);
-  triple_clear (&p->triple);
+  BeaverTriple_clear (p->triple);
   mp_clear (&p->f0_share);
   mp_clear (&p->g0_share);
   mp_clear (&p->h0_share);

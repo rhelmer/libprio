@@ -26,16 +26,20 @@ SECStatus
 share_int (const struct prio_config *cfg, const mp_int *src, 
     mp_int *shareA, mp_int *shareB)
 {
-  SECStatus rv = SECSuccess;
+  SECStatus rv;
   P_CHECK (rand_int (shareA, &cfg->modulus)); 
   MP_CHECK (mp_submod (src, shareA, &cfg->modulus, shareB));
 
   return rv;
 }
 
-SECStatus
-triple_new (struct beaver_triple *triple)
+BeaverTriple
+BeaverTriple_new (void)
 {
+  BeaverTriple triple = malloc (sizeof *triple);
+  if (!triple)
+    return NULL;
+
   MP_DIGITS (&triple->a) = NULL;
   MP_DIGITS (&triple->b) = NULL;
   MP_DIGITS (&triple->c) = NULL;
@@ -46,22 +50,26 @@ triple_new (struct beaver_triple *triple)
   MP_CHECKC (mp_init (&triple->c)); 
 
 cleanup:
-  if (rv != SECSuccess)
-    triple_clear (triple);
-  return rv;
+  if (rv != SECSuccess) {
+    BeaverTriple_clear (triple);
+    return NULL;
+  }
+  return triple;
 }
 
 
 void
-triple_clear (struct beaver_triple *triple)
+BeaverTriple_clear (BeaverTriple triple)
 {
+  if (!triple) return;
   mp_clear (&triple->a);
   mp_clear (&triple->b);
   mp_clear (&triple->c);
+  free (triple);
 }
 
 SECStatus
-triple_rand (const struct prio_config *cfg, 
+BeaverTriple_set_rand (const struct prio_config *cfg, 
     struct beaver_triple *triple_1, 
     struct beaver_triple *triple_2)
 {
