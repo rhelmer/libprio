@@ -28,12 +28,9 @@
 SECStatus
 rand_init (void)
 {
-  SECStatus rv = NSS_NoDB_Init (".");
+  SECStatus rv = NSS_NoDB_Init (NULL);
   if (rv != SECSuccess) 
     return SECFailure;
-
-  // For this example, we don't use database passwords
-  PK11_InitPin(PK11_GetInternalKeySlot(), "", "");
 
   return SECSuccess;
 }

@@ -39,14 +39,14 @@ initialize_roots (MPArray arr, const char *values[])
 }
 
 PrioConfig 
-PrioConfig_defaultNew (void)
+PrioConfig_new (int n_fields)
 {
   SECStatus rv = SECSuccess;
   PrioConfig cfg = malloc (sizeof (*cfg));
   if (!cfg)
     return NULL;
 
-  cfg->num_data_fields = DefaultNumDataFields;
+  cfg->num_data_fields = n_fields;
   cfg->n_roots = 1 << Generator2Order;
   MP_DIGITS(&cfg->modulus) = NULL;
   MP_DIGITS(&cfg->inv2) = NULL;
@@ -78,6 +78,13 @@ cleanup:
   }
 
   return cfg;
+}
+
+
+PrioConfig 
+PrioConfig_defaultNew (void)
+{
+  return PrioConfig_new (DefaultNumDataFields);
 }
 
 void 

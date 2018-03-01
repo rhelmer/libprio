@@ -39,16 +39,18 @@ verify_full (void)
   PrioTotalShare tA = NULL;
   PrioTotalShare tB = NULL;
 
-  // Use the default configuration parameters.
-  P_CHECKA (cfg = PrioConfig_defaultNew());
-
-  const int ndata = PrioConfig_numDataFields (cfg);
+  // Number of different boolean data fields we collect
+  const int ndata = 100;
 
   // New scope to avoid goto weirdness
   {
+    bool data_items[ndata];
+
+    // Use the default configuration parameters.
+    P_CHECKA (cfg = PrioConfig_new (ndata));
+
     // The client's data submission is an arbitrary
     // boolean vector.
-    bool data_items[ndata];
     for (int i=0; i < ndata; i++) {
       // Arbitrary data
       data_items[i] = (i % 3 == 1) || (i % 5 == 3);
