@@ -124,7 +124,7 @@ The files in this directory are:
   By using a fast polynomial interpolation-and-evaluation
   routine, we can reduce the cost of checking a single client
   request from O(*N* log *N*) multiplications down to O(*N*)
-  multiplications, for a data packet of n items.
+  multiplications, for a data packet of *N* items.
 * **Differential privacy.**
   It would be very straightforward to add some small amount of 
   noise to the final statistics to provide differential privacy.
