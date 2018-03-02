@@ -1,6 +1,5 @@
 # libprio - A Prio library in C using NSS 
 
-<aside class="warning">
 **Warning:**
 We do our best to write bug-free code, but I have no doubt
 that there are scary bugs, side-channel attacks, and memory leaks 
@@ -8,14 +7,11 @@ lurking herein.
 If you are going to use this code for anything serious, please
 give the source a careful read-through first and hammer it with
 your favorite testing tools.
-</aside>
 
-<aside class="warning">
 **Important:**
 We have not yet implemented the items
 described in the "Security-Critical TODOs" section below.
 Without these features, do not use the code in a production environment.
-</aside>
 
 
 ## Overview
