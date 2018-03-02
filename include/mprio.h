@@ -92,8 +92,8 @@ void PrioPacketClient_clear (PrioPacketClient p);
  * whose length is equal to the number of data fields specified in 
  * the config. It then encodes the data into a pair of `PrioPacketClient`s.
  *
- * IMPORTANT TODO: The data in the PrioPacketClient objects must
- * be encrypted to the public keys of servers A and B. We need to
+ * IMPORTANT TODO: The data in the PrioPacketClient objects MUST
+ * BE ENCRYPTED to the public keys of servers A and B. We need to
  * figure out the right NSS routines to use here.
  */
 SECStatus PrioPacketClient_set_data (const_PrioConfig cfg, const bool *data_in,
