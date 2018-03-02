@@ -113,21 +113,32 @@ cleanup:
   return rv;
 } 
 
-void
+/*
+ * The PrioConfig object has a list of N-th roots of unity for large N.
+ * This routine returns the n-th roots of unity for n < N, where n is 
+ * a power of two. If the `invert` flag is set, it returns the inverses
+ * of the n-th roots of unity.
+ */
+SECStatus
 fft_get_roots (mp_int *roots_out, int n_points, const_PrioConfig cfg, bool invert)
 {
+  if (n_points > cfg->n_roots) 
+    return SECFailure;
   const mp_int *roots_in = invert ? cfg->rootsInv->data : cfg->roots->data;
   const int step_size = cfg->n_roots / n_points;
 
   for (int i=0; i < n_points; i++) {
     roots_out[i] = roots_in[i * step_size];
   }
+
+  return SECSuccess;
 }
 
 SECStatus
 fft (MPArray points_out, const_MPArray points_in, 
     const_PrioConfig cfg, bool invert)
 {
+  SECStatus rv = SECSuccess;
   const int n_points = points_in->len;
   if (points_out->len != points_in->len)
     return SECFailure;
@@ -137,7 +148,7 @@ fft (MPArray points_out, const_MPArray points_in,
     return SECFailure;
 
   mp_int scaled_roots[n_points];
-  fft_get_roots (scaled_roots, n_points, cfg, invert);
+  P_CHECK (fft_get_roots (scaled_roots, n_points, cfg, invert));
 
   MP_CHECK (fft_interpolate_raw (points_out->data, points_in->data, n_points, 
       scaled_roots, &cfg->modulus, invert));

@@ -143,7 +143,7 @@ interp_evaluate (mp_int *value, const_MPArray poly_points,
   mp_int roots[N];
   
   P_CHECKA (coeffs = MPArray_new (N));
-  fft_get_roots (roots, N, cfg, false);
+  P_CHECKC (fft_get_roots (roots, N, cfg, false));
 
   // Interpolate polynomial through roots of unity
   P_CHECKC (fft (coeffs, poly_points, cfg, true)) 
