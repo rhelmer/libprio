@@ -57,6 +57,15 @@ typedef const struct prio_packet_verify2 *const_PrioPacketVerify2;
 
 
 /* 
+ * Initialize and clear random number generator state.
+ * You must call Prio_init() before using the library.
+ * To avoid memory leaks, call Prio_clear() afterwards.
+ */
+SECStatus Prio_init ();
+void Prio_clear();
+
+
+/* 
  * PrioConfig holds the system parameters. The two relevant
  * things determined by the config object are:
  *    (1) the number of data fields we are collecting, and
@@ -142,7 +151,6 @@ void PrioPacketVerify2_clear (PrioPacketVerify2 p);
 SECStatus PrioVerifier_isValid (const_PrioVerifier v,
     const_PrioPacketVerify2 pA, const_PrioPacketVerify2 pB);
 
-
 /*
  * Each of the two servers calls this routine to aggregate a data
  * submission from a client.
@@ -161,8 +169,12 @@ SECStatus PrioServer_aggregate (PrioServer s, const_PrioPacketClient p);
 PrioTotalShare PrioTotalShare_new (const_PrioServer s);
 void PrioTotalShare_clear (PrioTotalShare t);
 
-// Output must have enough space to store a vector with one entry
-// per data field.
+/*
+ * Read the output data into an array of unsigned longs. You should
+ * be sure that each data value can fit into a single long and that
+ * the pointer `output` points to a buffer large enough to store
+ * one long per data field.
+ */
 SECStatus PrioTotalShare_final (const_PrioConfig cfg, unsigned long *output,
     const_PrioTotalShare tA, const_PrioTotalShare tB);
 

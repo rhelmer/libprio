@@ -13,8 +13,8 @@
  * Please, read the README file for more details.
  */
 
-#include "libmprio/rand.h" 
 #include "mutest.h" /* MU_* constants, mu_print() */
+#include <mprio.h>
 #include <stdio.h> /* printf(), fprintf() */
 #include <string.h> /* strncmp() */
 
@@ -70,12 +70,12 @@ void parse_args(__attribute__((unused)) int argc, char* argv[]) {
 
 int main(int argc, char* argv[]) {
 
-  rand_init ();
+  Prio_init ();
 	parse_args(argc, argv);
 
 	mu_run_suites();
 
-  rand_clear ();
+  Prio_clear ();
 
 	mu_print(MU_SUMMARY, "\n"
 			"Tests done:\n"

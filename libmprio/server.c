@@ -128,6 +128,11 @@ cleanup:
   return rv;
 }
 
+/*
+ * Interpolate the polynomial through the points specified
+ * by `poly_points` and evaluate this polynomial at the point
+ * `eval_at`. Return the result as `value`.
+ */
 static SECStatus
 interp_evaluate (mp_int *value, const_MPArray poly_points, 
     const mp_int *eval_at, const_PrioConfig cfg)
@@ -149,6 +154,11 @@ cleanup:
   return rv;
 }
 
+/*
+ * Build shares of the polynomials f, g, and h used in the Prio verification
+ * routine and evalute these polynomials at a random point determined
+ * by the shared secret. Store the evaluations in the verifier object.
+ */
 static SECStatus
 compute_shares (PrioVerifier v, const ServerSharedSecret secret, 
     const_PrioPacketClient p)
@@ -235,7 +245,6 @@ PrioVerifier PrioVerifier_new (PrioServer s, const_PrioPacketClient p,
   // Prio paper.
   //
   // Compute share of f(r), g(r), h(r)
-
   P_CHECKC (compute_shares (v, secret, p)); 
 
 cleanup:
@@ -380,7 +389,11 @@ PrioVerifier_isValid (const_PrioVerifier v,
   mp_int res;
   MP_DIGITS (&res) = NULL;
   MP_CHECKC (mp_init (&res));
-  
+
+  // Add up the shares of the output wire value and 
+  // ensure that the sum is equal to zero, which indicates
+  // that
+  //      f(r) * g(r) == h(r).
   MP_CHECKC (mp_addmod (&pA->share_out, &pB->share_out,
         &v->cfg->modulus, &res));
 

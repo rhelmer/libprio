@@ -21,6 +21,10 @@
 #include "mparray.h"
 #include "share.h"
 
+/*
+ * The data that a Prio client sends to each of the two
+ * servers.
+ */
 struct prio_packet_client {
   struct beaver_triple *triple;
 

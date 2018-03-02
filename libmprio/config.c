@@ -23,7 +23,14 @@
 #include "rand.h"
 #include "util.h"
 
-
+// The PrioConfig object stores "2^k-th roots of unity" modulo
+// the prime modulus we use for all arithmetic. We use 
+// these roots to perform fast FFT-style polynomial 
+// interpolation and evaluation.
+//
+// In particular, we use a prime modulus p such that 
+//    p = (2^k)q + 1.
+// The roots are integers such that r^{2^k} = 1 mod p.
 static SECStatus
 initialize_roots (MPArray arr, const char *values[])
 {
@@ -103,4 +110,16 @@ PrioConfig_numDataFields (const_PrioConfig cfg)
 {
   return cfg->num_data_fields;
 
+}
+
+SECStatus 
+Prio_init (void)
+{
+  return rand_init ();
+}
+
+void
+Prio_clear (void)
+{
+  rand_clear ();
 }

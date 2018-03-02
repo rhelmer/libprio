@@ -117,13 +117,15 @@ share_polynomials (const_PrioConfig cfg, const_MPArray data_in,
   P_CHECKC (data_polynomial_evals(cfg, points_f, evals_f_2N, &f0));
   P_CHECKC (data_polynomial_evals(cfg, points_g, evals_g_2N, &g0));
 
-  // Must send to each server a share of the points
+  // The values f(0) and g(0) are set to random values.
+  // We must send to each server a share of the points
   //    f(0),   g(0),   and   h(0) = f(0)*g(0)
   P_CHECKC (share_int (cfg, &f0, &pA->f0_share, &pB->f0_share)); 
   P_CHECKC (share_int (cfg, &g0, &pA->g0_share, &pB->g0_share)); 
 
+  // Compute h(0) = f(0)*g(0).
   MP_CHECKC (mp_mulmod (&f0, &g0, mod, &f0));
-
+  // Give one share of h(0) to each server.
   P_CHECKC (share_int (cfg, &f0, &pA->h0_share, &pB->h0_share)); 
 
   const int lenN = (evals_f_2N->len/2);
@@ -134,16 +136,15 @@ share_polynomials (const_PrioConfig cfg, const_MPArray data_in,
   //   f(r) * g(r)
   // for all 2N-th roots of unity r that are not also
   // N-th roots of unity.
+  //
+  // For each such root r, compute h(r) = f(r)*g(r) and
+  // send a share of this value to each server.
   int j = 0;
   for (int i = 1; i < evals_f_2N->len; i += 2) {
     MP_CHECKC (mp_mulmod (&evals_f_2N->data[i], &evals_g_2N->data[i], mod, &f0));
     P_CHECKC (share_int (cfg, &f0, 
           &pA->h_points->data[j], &pB->h_points->data[j])); 
     j++;
-  }
-
-  for (int i = 0; i < evals_f_2N->len; i += 2) {
-    MP_CHECKC (mp_mulmod (&evals_f_2N->data[i], &evals_g_2N->data[i], mod, &f0));
   }
 
 cleanup:
@@ -197,7 +198,7 @@ PrioPacketClient_set_data (const_PrioConfig cfg, const bool *data_in,
   const int data_len = cfg->num_data_fields;
 
   if (!data_in) return SECFailure; 
- 
+
   P_CHECKC (BeaverTriple_set_rand (cfg, pA->triple, pB->triple)); 
   P_CHECKA (client_data = MPArray_new_bool (data_len, data_in));
   P_CHECKC (MPArray_set_share (pA->data_shares, pB->data_shares, client_data, cfg)); 

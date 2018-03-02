@@ -21,7 +21,7 @@
 #include "libmprio/rand.h"
 #include "libmprio/util.h"
 
-void
+int
 verify_full (void)
 {
   SECStatus rv = SECSuccess;
@@ -39,8 +39,13 @@ verify_full (void)
   PrioTotalShare tA = NULL;
   PrioTotalShare tB = NULL;
 
+  P_CHECKC (Prio_init ());
+
   // Number of different boolean data fields we collect
   const int ndata = 100;
+
+  // Number of clients to simulate
+  const int nclients = 10;
 
   // New scope to avoid goto weirdness
   {
@@ -48,13 +53,6 @@ verify_full (void)
 
     // Use the default configuration parameters.
     P_CHECKA (cfg = PrioConfig_new (ndata));
-
-    // The client's data submission is an arbitrary
-    // boolean vector.
-    for (int i=0; i < ndata; i++) {
-      // Arbitrary data
-      data_items[i] = (i % 3 == 1) || (i % 5 == 3);
-    }
 
     // Initialize two server objects.
     P_CHECKA (sA = PrioServer_new (cfg, 0));
@@ -64,45 +62,54 @@ verify_full (void)
     P_CHECKA (pA = PrioPacketClient_new (cfg));
     P_CHECKA (pB = PrioPacketClient_new (cfg));
 
-    // Construct the client data packets.
-    P_CHECKC (PrioPacketClient_set_data (cfg, data_items, pA, pB));
+    // Generate client data packets.
+    for (int c=0; c < nclients; c++) {
 
-    // THE CLIENT'S JOB IS DONE. The rest of the 
-    // processing just takes place between the
-    // two servers.
+      // The client's data submission is an arbitrary boolean vector.
+      for (int i=0; i < ndata; i++) {
+        // Arbitrary data
+        data_items[i] = (i % 3 == 1) || (c % 5 == 3);
+      }
 
+      // Construct the client data packets.
+      P_CHECKC (PrioPacketClient_set_data (cfg, data_items, pA, pB));
 
-    // The servers must generate a new shared secret to check
-    // each client request. (Reusing the same randomness to
-    // check multiple requests is NOT safe.) The servers can
-    // use a PRG (e.g., AES in counter mode) to generate many
-    // shared secrets from a short (e.g., 128-bit) seed.
-    ServerSharedSecret sec;
-    P_CHECKC (rand_bytes (sec, SOUNDNESS_PARAM));
+      // THE CLIENT'S JOB IS DONE. The rest of the 
+      // processing just takes place between the
+      // two servers.
 
-    // Use the shared secret between the servers to set up 
-    // a Prio verifier object.
-    P_CHECKA (vA = PrioVerifier_new (sA, pA, sec));
-    P_CHECKA (vB = PrioVerifier_new (sB, pB, sec));
+      // The servers must generate a new shared secret to check
+      // each client request. (Reusing the same randomness to
+      // check multiple requests is NOT safe.) The servers can
+      // use a PRG (e.g., AES in counter mode) to generate many
+      // shared secrets from a short (e.g., 128-bit) seed.
+      ServerSharedSecret sec;
+      P_CHECKC (rand_bytes (sec, SOUNDNESS_PARAM));
 
-    // Both servers produce a packet1
-    P_CHECKA (p1A = PrioVerifier_packet1(vA));
-    P_CHECKA (p1B = PrioVerifier_packet1(vB));
+      // Use the shared secret between the servers to set up 
+      // a Prio verifier object.
+      P_CHECKA (vA = PrioVerifier_new (sA, pA, sec));
+      P_CHECKA (vB = PrioVerifier_new (sB, pB, sec));
 
-    // Both servers produce a packet2
-    P_CHECKA (p2A = PrioVerifier_packet2(vA, p1A, p1B));
-    P_CHECKA (p2B = PrioVerifier_packet2(vB, p1A, p1B));
+      // Both servers produce a packet1
+      P_CHECKA (p1A = PrioVerifier_packet1(vA));
+      P_CHECKA (p1B = PrioVerifier_packet1(vB));
 
-    // The output of packet2 lets the servers determine
-    // whether the request is valid.
-    P_CHECKC (PrioVerifier_isValid (vA, p2A, p2B)); 
-    P_CHECKC (PrioVerifier_isValid (vB, p2A, p2B)); 
+      // Both servers produce a packet2
+      P_CHECKA (p2A = PrioVerifier_packet2(vA, p1A, p1B));
+      P_CHECKA (p2B = PrioVerifier_packet2(vB, p1A, p1B));
 
-    // If we get here, the client packet is valid, so 
-    // add it to the aggregate statistic counter for both
-    // servers.
-    P_CHECKC (PrioServer_aggregate (sA, pA));
-    P_CHECKC (PrioServer_aggregate (sB, pB));
+      // The output of packet2 lets the servers determine
+      // whether the request is valid.
+      P_CHECKC (PrioVerifier_isValid (vA, p2A, p2B)); 
+      P_CHECKC (PrioVerifier_isValid (vB, p2A, p2B)); 
+
+      // If we get here, the client packet is valid, so 
+      // add it to the aggregate statistic counter for both
+      // servers.
+      P_CHECKC (PrioServer_aggregate (sA, pA));
+      P_CHECKC (PrioServer_aggregate (sB, pB));
+    }
 
     // The servers repeat the steps above for each client
     // submission.
@@ -120,6 +127,9 @@ verify_full (void)
     
     // Now the output[i] contains a counter that indicates
     // how many clients submitted TRUE for data value i. 
+    // We print out this data.
+    for (int i=0; i < ndata; i++) 
+      printf("output[%d] = %lu\n", i, output[i]);
   }
 
 cleanup:
@@ -141,13 +151,16 @@ cleanup:
   PrioServer_clear (sA);
   PrioServer_clear (sB);
   PrioConfig_clear (cfg);
+
+  Prio_clear ();
+
+  return !(rv == SECSuccess);
 }
 
 int 
 main (void)
 {
   puts ("This utility demonstrates how to invoke the Prio API.");
-  verify_full ();
-  return 0;
+  return verify_full ();
 }
 

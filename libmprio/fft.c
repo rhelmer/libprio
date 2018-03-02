@@ -21,6 +21,16 @@
 #include "fft.h"
 #include "util.h"
 
+/*
+ * A nice exposition of the recursive FFT/DFT algorithm we implement
+ * is in the book:
+ *
+ *   "Modern Computer Algebra" 
+ *    by Von zur Gathen and Gerhard. 
+ *    Cambridge University Press, 2013.
+ *
+ * They present this algorithm as Algorithm 8.14.
+ */
 static SECStatus
 fft_recurse (mp_int *out, const mp_int *mod, int n, 
     const mp_int *roots, const mp_int *ys,
@@ -118,10 +128,11 @@ SECStatus
 fft (MPArray points_out, const_MPArray points_in, 
     const_PrioConfig cfg, bool invert)
 {
+  const int n_points = points_in->len;
   if (points_out->len != points_in->len)
     return SECFailure;
-
-  const int n_points = points_in->len;
+  if (n_points > cfg->n_roots) 
+    return SECFailure;
   if (cfg->n_roots % n_points != 0) 
     return SECFailure;
 

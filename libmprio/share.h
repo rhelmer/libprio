@@ -38,6 +38,12 @@ typedef const struct beaver_triple *const_BeaverTriple;
 int share_int (const struct prio_config *cfg, const mp_int *src, 
     mp_int *shareA, mp_int *shareB);
 
+/*
+ * Prio uses Beaver triples to implement one step of the
+ * client data validation routine. A Beaver triple is just
+ * a sharing of random values a, b, c such that
+ *    a * b = c
+ */
 BeaverTriple BeaverTriple_new (void);
 void BeaverTriple_clear (BeaverTriple t);
 

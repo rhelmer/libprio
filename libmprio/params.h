@@ -30,7 +30,7 @@ static const char *Modulus = "8000000000000000080001";
 // static const char *Generator = "5569560418e73ff9db709";
 
 // The generator g generates a subgroup of
-// order 2^IntGen2Order in Z*_p.
+// order 2^Generator2Order in Z*_p.
 static const int Generator2Order = 12;
 
 static const char *Roots[] = {

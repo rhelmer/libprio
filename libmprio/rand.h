@@ -21,10 +21,22 @@
 #include <nss/seccomon.h>
 #include "libmpi/mpi.h"
 
+/* 
+ * Initialize or cleanup the global random number generator
+ * state that NSS uses.
+ */
 SECStatus rand_init (void);
 void rand_clear (void);
 
+/*
+ * Generate a random number x such that
+ *    0 <= x < max
+ */
 SECStatus rand_int (mp_int *out, const mp_int *max);
+
+/* 
+ * Generate the specified number of random bytes.
+ */ 
 SECStatus rand_bytes (unsigned char *out, int n_bytes);
 
 #endif /* __RAND_H__ */
