@@ -41,7 +41,10 @@ After collecting data packets from many clients, the servers
 can combine their state to learn how many clients had the
 *i*th bit of their data vector set to `true` and how many
 clients had the *i*th bit of their data vector set to `false`.
-The servers learn *nothing else* about the clients' data.
+As long as at least one of the two servers is honest 
+(i.e., runs the correct code), 
+the servers learn *nothing else* about the clients' data, 
+under standard cryptographic assumptions.
 
 For example, the *i*th bit of the data vector could indicate
 whether the client ever visited the *i*th-ranked website
