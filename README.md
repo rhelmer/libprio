@@ -61,7 +61,9 @@ the dominant costs of the system are:
 * **Client-to-server communication:** 4*N* + O(1) elements<br>
     (NOTE: Using an optimization we haven't yet implemented, we can 
     drop this cost to 2*N* + O(1) elements.)
-* **Server compute:** O(*N*) multiplications to check each packet 
+* **Server compute:** O(*N* log *N*) multiplications to check each packet<br> 
+    (NOTE: Using an optimization we haven't yet implemented, we can 
+    drop this cost to O(*N*) multiplications per packet.)
 * **Server-to-server communication:** O(1) elements
 * **Server storage:** O(*N*) elements
 

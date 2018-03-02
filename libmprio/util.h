@@ -21,12 +21,15 @@
 #include <mprio.h>
 #include "libmpi/mpi.h"
 
-
+// Check a Prio error code and return failure if the call fails.
 #define P_CHECK(s) \
   do { \
     if((rv = (s)) != SECSuccess) \
     return rv; \
   } while(0);
+
+// Check an allocation that should not return NULL. If the allocation returns
+// NULL, set the return value and jump to the cleanup label to free memory. 
 #define P_CHECKA(s) \
   do { \
     if((s) == NULL) {\
@@ -34,21 +37,21 @@
       goto cleanup;\
     }\
   } while(0);
+
+// Check a Prio library call that should return SECSuccess. If it doesn't,
+// jump to the cleanup label.
 #define P_CHECKC(s) \
   do { \
     if((rv = (s)) != SECSuccess) { \
        goto cleanup; \
     }\
   } while(0);
+
+// Check an MPI library call and return failure if it fails.
 #define MP_CHECK(s) do { if((s) != MP_OKAY) return SECFailure; } while(0);
-#define MP_CHECKN(s) do { if((s) != MP_OKAY) return NULL; } while(0);
-#define MP_CHECKA(s) \
-  do { \
-    if((s) == NULL) { \
-       rv = SECFailure; \
-       goto cleanup; \
-    }\
-  } while(0);
+
+// Check an MPI library call. If it fails, set the return code and jump
+// to the cleanup label.
 #define MP_CHECKC(s) \
   do { \
     if((s) != MP_OKAY) { \
