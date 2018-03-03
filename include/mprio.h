@@ -64,7 +64,6 @@ typedef const struct prio_packet_verify2 *const_PrioPacketVerify2;
 SECStatus Prio_init ();
 void Prio_clear();
 
-
 /* 
  * PrioConfig holds the system parameters. The two relevant
  * things determined by the config object are:

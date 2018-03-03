@@ -112,19 +112,15 @@ eval_poly (mp_int *value, const_MPArray coeffs, const mp_int *eval_at,
 { 
   SECStatus rv = SECSuccess;
   const int n = coeffs->len;
-  mp_int tmp;
-  MP_DIGITS (&tmp) = NULL;
-  MP_CHECKC (mp_init (&tmp)); 
 
-  mp_set (value, 0);
-  for (int i=0; i<n; i++) {
-    MP_CHECKC (mp_exptmod_d (eval_at, i, &cfg->modulus, &tmp));
-    MP_CHECKC (mp_mulmod (&tmp, &coeffs->data[i], &cfg->modulus, &tmp));
-    MP_CHECKC (mp_addmod (&tmp, value, &cfg->modulus, value));
+  // Use Horner's method to evaluate the polynomial at the point
+  // `eval_at`
+  mp_copy (&coeffs->data[n-1], value);
+  for (int i=n-2; i >= 0; i--) {
+    MP_CHECK (mp_mulmod (value, eval_at, &cfg->modulus, value));
+    MP_CHECK (mp_addmod (value, &coeffs->data[i], &cfg->modulus, value));
   }
 
-cleanup:
-  mp_clear (&tmp);
   return rv;
 }
 

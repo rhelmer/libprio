@@ -41,10 +41,10 @@ verify_full (void)
 
   P_CHECKC (Prio_init ());
 
-  // Number of different boolean data fields we collect
+  // Number of different boolean data fields we collect.
   const int ndata = 100;
 
-  // Number of clients to simulate
+  // Number of clients to simulate.
   const int nclients = 10;
 
   // New scope to avoid goto weirdness
@@ -54,7 +54,13 @@ verify_full (void)
     // Use the default configuration parameters.
     P_CHECKA (cfg = PrioConfig_new (ndata));
 
-    // Initialize two server objects.
+    // Initialize two server objects. The role of the servers need not
+    // be symmetric. In a deployment, we envision that:
+    //   * Server A is the main telemetry server that is always online. 
+    //     Clients send their encrypted data packets to Server A and
+    //     Server A stores them.
+    //   * Server B only comes online when the two servers want to compute
+    //     the final aggregate statistics.
     P_CHECKA (sA = PrioServer_new (cfg, 0));
     P_CHECKA (sB = PrioServer_new (cfg, 1));
 
@@ -71,18 +77,47 @@ verify_full (void)
         data_items[i] = (i % 3 == 1) || (c % 5 == 3);
       }
 
+      // I. CLIENT DATA SUBMISSION.
+      //
       // Construct the client data packets.
+      //
+      // An important TODO item is that the packet pA must be encrypted
+      // with the public key of server A. The packet pB must be encrypted
+      // with the public key of server B.  The client can then send both
+      // encrypted packets to a _single_ telemetry server. 
+      //
+      // The Prio servers A and B can come online later (e.g., at the end of
+      // each day) to download the encrypted telemetry packets from the
+      // telemetry server and run the protocol that computes the aggregate
+      // statistics. 
+      //
+      // In this way, the client only needs to send a single message (the pair
+      // of encrypted ClientPacketData packets) to a single server (the
+      // telemetry-data-collection server).
       P_CHECKC (PrioPacketClient_set_data (cfg, data_items, pA, pB));
 
-      // THE CLIENT'S JOB IS DONE. The rest of the 
-      // processing just takes place between the
-      // two servers.
 
-      // The servers must generate a new shared secret to check
-      // each client request. (Reusing the same randomness to
-      // check multiple requests is NOT safe.) The servers can
-      // use a PRG (e.g., AES in counter mode) to generate many
-      // shared secrets from a short (e.g., 128-bit) seed.
+      // THE CLIENT'S JOB IS DONE. The rest of the processing just takes place
+      // between the two servers.
+
+
+      // II. VALIDATION PROTOCOL. (at servers)
+      //
+      // The servers now run a short protocol to check each client's packet.
+      // The protocol works in two steps:
+      //    1) Servers A and B broadcast one message (PrioPacketVerify1) 
+      //       to each other.
+      //    2) Servers A and B broadcast another message (PrioPacketVerify2)
+      //       to each other.
+      //    3) Servers A and B can both determine whether the client's data
+      //       submission is well-formed (in which case they add it to their
+      //       running total of aggregate statistics) or ill-formed
+      //       (in which case they ignore it).
+
+      // The servers must generate a new shared secret to check each client
+      // request. (Reusing the same randomness to check multiple requests is
+      // NOT safe.) The servers can use a PRG (e.g., AES in counter mode) to
+      // generate many shared secrets from a short (e.g., 128-bit) seed.
       ServerSharedSecret sec;
       P_CHECKC (rand_bytes (sec, SOUNDNESS_PARAM));
 
@@ -91,43 +126,47 @@ verify_full (void)
       P_CHECKA (vA = PrioVerifier_new (sA, pA, sec));
       P_CHECKA (vB = PrioVerifier_new (sB, pB, sec));
 
-      // Both servers produce a packet1
+      // Both servers produce a packet1. Server A sends p1A to Server B
+      // and vice versa.
       P_CHECKA (p1A = PrioVerifier_packet1(vA));
       P_CHECKA (p1B = PrioVerifier_packet1(vB));
 
-      // Both servers produce a packet2
+      // Both servers produce a packet2. Server A sends p2A to Server B
+      // and vice versa.
       P_CHECKA (p2A = PrioVerifier_packet2(vA, p1A, p1B));
       P_CHECKA (p2B = PrioVerifier_packet2(vB, p1A, p1B));
 
-      // The output of packet2 lets the servers determine
-      // whether the request is valid.
+      // Using p2A and p2B, the servers can determine whether the request
+      // is valid. (In fact, only Server A needs to perform this 
+      // check, since Server A can just tell Server B whether the check 
+      // succeeded or failed.) 
       P_CHECKC (PrioVerifier_isValid (vA, p2A, p2B)); 
       P_CHECKC (PrioVerifier_isValid (vB, p2A, p2B)); 
 
-      // If we get here, the client packet is valid, so 
-      // add it to the aggregate statistic counter for both
-      // servers.
+      // If we get here, the client packet is valid, so add it to the aggregate
+      // statistic counter for both servers.
       P_CHECKC (PrioServer_aggregate (sA, pA));
       P_CHECKC (PrioServer_aggregate (sB, pB));
     }
 
-    // The servers repeat the steps above for each client
-    // submission.
+    // The servers repeat the steps above for each client submission.
 
-    // After collecting aggregates from MANY clients,
-    // the servers can compute their shares of the aggregate
-    // statistics. 
+    // III. PRODUCTION OF AGGREGATE STATISTICS.
+    //
+    // After collecting aggregates from MANY clients, the servers can compute
+    // their shares of the aggregate statistics. 
+    //
+    // Server B can send tB to Server A.
     P_CHECKA (tA = PrioTotalShare_new (sA));
     P_CHECKA (tB = PrioTotalShare_new (sB));
 
-    // The servers put their two shares together to 
-    // get the actual data.
+    // Once Server A has tA and tB, it can learn the aggregate statistics
+    // in the clear.
     unsigned long output[ndata];
     P_CHECKC (PrioTotalShare_final (cfg, output, tA, tB));
     
-    // Now the output[i] contains a counter that indicates
-    // how many clients submitted TRUE for data value i. 
-    // We print out this data.
+    // Now the output[i] contains a counter that indicates how many clients
+    // submitted TRUE for data value i.  We print out this data.
     for (int i=0; i < ndata; i++) 
       printf("output[%d] = %lu\n", i, output[i]);
   }
