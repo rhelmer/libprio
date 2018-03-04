@@ -73,6 +73,16 @@ next_power_of_two (int val)
   return (pow > 1 && pow/2 == val) ? val : pow;
 } 
 
+/* 
+ * Return a mask that masks out all of the zero bits
+ */
+inline unsigned char
+msb_mask (unsigned char val)
+{
+  unsigned char mask;
+  for (mask = 0x00; (val & mask) != val; mask = (mask << 1) + 1);
+  return mask;
+}
 
 #endif /* __UTIL_H__ */
 

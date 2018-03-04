@@ -38,8 +38,7 @@ initialize_roots (MPArray arr, const char *values[])
   // Right now we read in all 4096 roots whether or not we use
   // them all.
   for (int i=0; i < arr->len; i++) {
-    if ((mp_read_radix (&arr->data[i], values[i], 16) != MP_OKAY)) 
-      return SECFailure;
+    MP_CHECK (mp_read_radix (&arr->data[i], values[i], 16));
   }
   
   return SECSuccess;

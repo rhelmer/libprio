@@ -56,40 +56,37 @@ rand_bytes (unsigned char *out, int n_bytes)
 SECStatus
 rand_int (mp_int *out, const mp_int *max)
 {
+  SECStatus rv = SECSuccess;
+
   // Ensure max value is > 0
   if (mp_cmp_z (max) == 0)
     return SECFailure;
 
   // Compute max-1, which tells us the largest
   // value we will ever need to generate.
-  if (mp_sub_d (max, 1, out) != MP_OKAY)
-    return SECFailure;
+  MP_CHECK (mp_sub_d (max, 1, out));
 
   const int nbytes = mp_unsigned_octet_size (out);
 
-  do {
+  // Figure out how many MSBs we need to get in the 
+  // most-significant byte. 
+  unsigned char max_bytes[nbytes];
+  MP_CHECK (mp_to_fixlen_octets (out, max_bytes, nbytes));
+  const unsigned char mask = msb_mask (max_bytes[0]); 
 
-    unsigned char buf[nbytes];
-    SECStatus rv;
+  // Buffer to store the pseudo-random bytes
+  unsigned char buf[nbytes];
+
+  do {
+    // Use  rejection sampling to find a value strictly less than max.
     P_CHECK (rand_bytes (buf, nbytes));
 
-    if (mp_read_unsigned_octets (out, buf, nbytes) != MP_OKAY)
-    {
-      PRIO_DEBUG ("Error converting bytes to big integer");
-      return SECFailure;
-    }
+    // Mask off high-order bits that we will never need.
+    P_CHECK (rand_bytes (&buf[0], 1));
+    if (mask) buf[0] &= mask;
 
-    // Use [inefficient] rejection sampling to find a number
-    // strictly less than max.
-    // TODO: Optimize to make fewer iterations. 
-    //mp_print (out, stderr);
-    //puts("");
-    //mp_print (max, stderr);
-    //puts("");
-    //puts("");
+    MP_CHECK (mp_read_unsigned_octets (out, buf, nbytes));
   } while (mp_cmp (out, max) != -1);
-
-  //puts("DONE!");
 
   return 0;
 }

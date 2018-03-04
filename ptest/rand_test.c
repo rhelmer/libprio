@@ -17,7 +17,18 @@
 
 #include "libmpi/mpi.h"
 #include "libmprio/rand.h"
+#include "libmprio/util.h"
 #include "mutest.h"
+
+void 
+mu_test__util_msb_mast (void)
+{
+  mu_check (msb_mask (0x01) == 0x01);
+  mu_check (msb_mask (0x02) == 0x03);
+  mu_check (msb_mask (0x0C) == 0x0F);
+  mu_check (msb_mask (0x1C) == 0x1F);
+  mu_check (msb_mask (0xFF) == 0xFF);
+}
 
 void 
 test_rand_once (int limit)
@@ -76,16 +87,19 @@ mu_test_rand__bit(void)
 }
 
 void 
-mu_test_rand__distribution(void) 
+test_rand_distribution (int limit) 
 {
-  const int limit = 123;
+  SECStatus rv = SECSuccess;
   int bins[limit];
 
   mp_int max;
   mp_int out;
 
-  mu_check (mp_init (&max) == MP_OKAY);
-  mu_check (mp_init (&out) == MP_OKAY);
+  MP_DIGITS (&max) = NULL;
+  MP_DIGITS (&out) = NULL;
+
+  MP_CHECKC (mp_init (&max));
+  MP_CHECKC (mp_init (&out));
 
   mp_set (&max, limit);
 
@@ -98,15 +112,94 @@ mu_test_rand__distribution(void)
     mu_check (mp_cmp_d (&out, limit) == -1);
     mu_check (mp_cmp_z (&out) > -1);
 
-    unsigned char ival;
-    mu_check (mp_to_fixlen_octets (&out, &ival, 1) == MP_OKAY);
-    bins[ival] += 1;
+    unsigned char ival[2] = {0x00, 0x00};
+    MP_CHECKC (mp_to_fixlen_octets (&out, ival, 2));
+    if (ival[1] + 256*ival[0] < limit) {
+      bins[ival[1] + 256*ival[0]] += 1;
+    } else {
+      mu_check (false);
+    }
   }
 
   for (int i = 0; i < limit; i++) {
-    mu_check (bins[i] > 50);
+    mu_check (bins[i] > limit/2);
   }
 
+cleanup:
+  if (rv != SECSuccess)
+    mu_check (false);
   mp_clear (&max);
   mp_clear (&out);
+}
+
+
+void 
+mu_test__rand_distribution123 (void) 
+{
+  test_rand_distribution(123);
+}
+
+void 
+mu_test__rand_distribution257 (void) 
+{
+  test_rand_distribution(257);
+}
+
+void 
+mu_test__rand_distribution259 (void) 
+{
+  test_rand_distribution(259);
+}
+
+void 
+test_rand_distribution_large (mp_int *max) 
+{
+  SECStatus rv = SECSuccess;
+  int limit = 16;
+  int bins[limit];
+
+  mp_int out;
+  MP_DIGITS (&out) = NULL;
+  MP_CHECKC (mp_init (&out));
+
+  for (int i = 0; i < limit; i++) {
+    bins[i] = 0;
+  }
+
+  for (int i = 0; i < 100*limit*limit; i++) {
+    MP_CHECKC (rand_int (&out, max));
+    mu_check (mp_cmp (&out, max) == -1);
+    mu_check (mp_cmp_z (&out) > -1);
+
+    unsigned long res; 
+    MP_CHECKC (mp_mod_d (&out, limit, &res));
+    bins[res] += 1;
+  }
+
+  for (int i = 0; i < limit; i++) {
+    mu_check (bins[i] > limit/2);
+  }
+
+cleanup:
+  if (rv != SECSuccess)
+    mu_check (false);
+  mp_clear (&out);
+}
+
+void 
+mu_test__rand_distribution_large (void) 
+{
+  SECStatus rv = SECSuccess;
+  mp_int max;
+  MP_DIGITS (&max) = NULL;
+  MP_CHECKC (mp_init (&max));
+
+  char bytes[] = "FF1230985198451798EDC8123";
+  MP_CHECKC (mp_read_radix (&max, bytes, 16));
+  test_rand_distribution_large (&max);
+
+cleanup:
+  if (rv != SECSuccess)
+    mu_check (false);
+  mp_clear (&max);
 }
