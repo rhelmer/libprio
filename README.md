@@ -73,9 +73,12 @@ the dominant costs of the system are:
 
 ## Running the code
 
-After installing [NSS/NSPR](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS) 
-and [scons](http://scons.org/), you should be able to run
-and test the code using:
+You must first install [NSS/NSPR](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS) 
+and [scons](http://scons.org/).
+On Ubuntu, you can do this with:
+
+    $ sudo apt-get install scons libnspr4-dev libnss3-dev 
+
 To compile the code, run:
 
     $ scons
