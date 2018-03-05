@@ -44,7 +44,7 @@ void mu_test__eval_poly (void)
   mp_set (&eval_at, 7);
 
   const int val = 3*7*7 + 8*7 + 2;
-  mu_check (eval_poly (&out, coeffs, &eval_at, cfg) == SECSuccess);
+  mu_check (poly_eval (&out, coeffs, &eval_at, cfg) == SECSuccess);
   mu_check (mp_cmp_d (&out, val) == 0);
 
 cleanup:

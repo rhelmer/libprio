@@ -16,7 +16,6 @@
 
 #include <mprio.h>
 
-#include "config.h"
 #include "rand.h"
 #include "share.h"
 #include "util.h"
@@ -30,23 +29,6 @@ share_int (const struct prio_config *cfg, const mp_int *src,
   P_CHECK (rand_int (shareA, &cfg->modulus)); 
   MP_CHECK (mp_submod (src, shareA, &cfg->modulus, shareB));
 
-  return rv;
-}
-
-SECStatus
-share_int_prg (const struct prio_config *cfg, PRG prgB, const mp_int *src, 
-    mp_int *shareA)
-{
-  SECStatus rv = SECSuccess;
-  mp_int tmp;
-  MP_DIGITS (&tmp) = NULL;
-
-  MP_CHECKC (mp_init (&tmp));
-  P_CHECKC (PRG_get_int (prgB, &tmp, &cfg->modulus)); 
-  MP_CHECKC (mp_submod (src, &tmp, &cfg->modulus, shareA));
-
-cleanup:
-  mp_clear (&tmp);
   return rv;
 }
 

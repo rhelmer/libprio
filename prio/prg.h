@@ -53,6 +53,14 @@ SECStatus PRG_get_bytes (PRG prg, unsigned char *bytes, size_t len);
  */
 SECStatus PRG_get_int (PRG prg, mp_int *out, const mp_int *max);
 
+/*
+ * Use secret sharing to split the int src into two shares.
+ * Use PRG to generate the value `shareB`.
+ * The mp_ints must be initialized.
+ */
+SECStatus PRG_share_int (PRG prg, mp_int *shareA, const mp_int *src,
+    const_PrioConfig cfg);
+
 /* 
  * Set each item in the array to a pseudorandom value in the range
  * [0, mod), where the values are generated using the PRG.

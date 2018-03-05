@@ -18,7 +18,7 @@
 #include <mprio.h>
 
 #include "config.h"
-#include "fft.h"
+#include "poly.h"
 #include "util.h"
 
 /*
@@ -120,7 +120,7 @@ cleanup:
  * of the n-th roots of unity.
  */
 SECStatus
-fft_get_roots (mp_int *roots_out, int n_points, const_PrioConfig cfg, bool invert)
+poly_fft_get_roots (mp_int *roots_out, int n_points, const_PrioConfig cfg, bool invert)
 {
   if (n_points > cfg->n_roots) 
     return SECFailure;
@@ -135,7 +135,7 @@ fft_get_roots (mp_int *roots_out, int n_points, const_PrioConfig cfg, bool inver
 }
 
 SECStatus
-fft (MPArray points_out, const_MPArray points_in, 
+poly_fft (MPArray points_out, const_MPArray points_in, 
     const_PrioConfig cfg, bool invert)
 {
   SECStatus rv = SECSuccess;
@@ -148,7 +148,7 @@ fft (MPArray points_out, const_MPArray points_in,
     return SECFailure;
 
   mp_int scaled_roots[n_points];
-  P_CHECK (fft_get_roots (scaled_roots, n_points, cfg, invert));
+  P_CHECK (poly_fft_get_roots (scaled_roots, n_points, cfg, invert));
 
   MP_CHECK (fft_interpolate_raw (points_out->data, points_in->data, n_points, 
       scaled_roots, &cfg->modulus, invert));
@@ -157,3 +157,41 @@ fft (MPArray points_out, const_MPArray points_in,
 }
 
 
+SECStatus 
+poly_eval (mp_int *value, const_MPArray coeffs, const mp_int *eval_at, 
+    const_PrioConfig cfg)
+{ 
+  SECStatus rv = SECSuccess;
+  const int n = coeffs->len;
+
+  // Use Horner's method to evaluate the polynomial at the point
+  // `eval_at`
+  mp_copy (&coeffs->data[n-1], value);
+  for (int i=n-2; i >= 0; i--) {
+    MP_CHECK (mp_mulmod (value, eval_at, &cfg->modulus, value));
+    MP_CHECK (mp_addmod (value, &coeffs->data[i], &cfg->modulus, value));
+  }
+
+  return rv;
+}
+
+SECStatus
+poly_interp_evaluate (mp_int *value, const_MPArray poly_points, 
+    const mp_int *eval_at, const_PrioConfig cfg)
+{
+  SECStatus rv;
+  MPArray coeffs = NULL;
+  const int N = poly_points->len;
+  mp_int roots[N];
+  
+  P_CHECKA (coeffs = MPArray_new (N));
+  P_CHECKC (poly_fft_get_roots (roots, N, cfg, false));
+
+  // Interpolate polynomial through roots of unity
+  P_CHECKC (poly_fft (coeffs, poly_points, cfg, true)) 
+  P_CHECKC (poly_eval (value, coeffs, eval_at, cfg));
+
+cleanup:
+  MPArray_clear (coeffs);
+  return rv;
+}

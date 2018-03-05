@@ -20,7 +20,7 @@
 
 #include "mpi/mpi.h"
 #include "client.h"
-#include "fft.h"
+#include "poly.h"
 #include "mparray.h"
 #include "server.h"
 #include "util.h"
@@ -84,6 +84,14 @@ PrioTotalShare_new (void)
   return t;
 }
 
+void 
+PrioTotalShare_clear (PrioTotalShare t)
+{
+  if (!t) return;
+  MPArray_clear (t->data_shares);
+  free (t);
+}
+
 SECStatus
 PrioTotalShare_set_data (PrioTotalShare t, const_PrioServer s)
 {
@@ -126,57 +134,6 @@ cleanup:
   return rv;
 }
 
-void 
-PrioTotalShare_clear (PrioTotalShare t)
-{
-  if (!t) return;
-  MPArray_clear (t->data_shares);
-  free (t);
-}
-
-static SECStatus
-eval_poly (mp_int *value, const_MPArray coeffs, const mp_int *eval_at, 
-    const_PrioConfig cfg)
-{ 
-  SECStatus rv = SECSuccess;
-  const int n = coeffs->len;
-
-  // Use Horner's method to evaluate the polynomial at the point
-  // `eval_at`
-  mp_copy (&coeffs->data[n-1], value);
-  for (int i=n-2; i >= 0; i--) {
-    MP_CHECK (mp_mulmod (value, eval_at, &cfg->modulus, value));
-    MP_CHECK (mp_addmod (value, &coeffs->data[i], &cfg->modulus, value));
-  }
-
-  return rv;
-}
-
-/*
- * Interpolate the polynomial through the points specified
- * by `poly_points` and evaluate this polynomial at the point
- * `eval_at`. Return the result as `value`.
- */
-static SECStatus
-interp_evaluate (mp_int *value, const_MPArray poly_points, 
-    const mp_int *eval_at, const_PrioConfig cfg)
-{
-  SECStatus rv;
-  MPArray coeffs = NULL;
-  const int N = poly_points->len;
-  mp_int roots[N];
-  
-  P_CHECKA (coeffs = MPArray_new (N));
-  P_CHECKC (fft_get_roots (roots, N, cfg, false));
-
-  // Interpolate polynomial through roots of unity
-  P_CHECKC (fft (coeffs, poly_points, cfg, true)) 
-  P_CHECKC (eval_poly (value, coeffs, eval_at, cfg));
-
-cleanup:
-  MPArray_clear (coeffs);
-  return rv;
-}
 
 inline static mp_int *
 get_data_share (const_PrioVerifier v, int i) {
@@ -260,9 +217,9 @@ compute_shares (PrioVerifier v, const ServerSharedSecret secret,
     MP_CHECKC (mp_copy(h_point_j, &points_h->data[i]));
   }
 
-  P_CHECKC (interp_evaluate (&v->share_fR, points_f, &eval_at, v->cfg));
-  P_CHECKC (interp_evaluate (&v->share_gR, points_g, &eval_at, v->cfg));
-  P_CHECKC (interp_evaluate (&v->share_hR, points_h, &eval_at, v->cfg));
+  P_CHECKC (poly_interp_evaluate (&v->share_fR, points_f, &eval_at, v->cfg));
+  P_CHECKC (poly_interp_evaluate (&v->share_gR, points_g, &eval_at, v->cfg));
+  P_CHECKC (poly_interp_evaluate (&v->share_hR, points_h, &eval_at, v->cfg));
 
 cleanup:
   MPArray_clear (points_f);

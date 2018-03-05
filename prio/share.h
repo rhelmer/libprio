@@ -20,7 +20,6 @@
 
 #include "mpi/mpi.h"
 #include "config.h"
-#include "prg.h"
 
 struct beaver_triple {
   mp_int a;
@@ -36,16 +35,9 @@ typedef const struct beaver_triple *const_BeaverTriple;
  * Use secret sharing to split the int src into two shares.
  * The mp_ints must be initialized.
  */
-int share_int (const_PrioConfig cfg, const mp_int *src, 
+SECStatus share_int (const_PrioConfig cfg, const mp_int *src, 
     mp_int *shareA, mp_int *shareB);
 
-/*
- * Use secret sharing to split the int src into two shares.
- * Use PRG to generate the value `shareB`.
- * The mp_ints must be initialized.
- */
-int share_int_prg (const_PrioConfig cfg, PRG prg, const mp_int *src, 
-    mp_int *shareA);
 
 /*
  * Prio uses Beaver triples to implement one step of the
@@ -56,7 +48,7 @@ int share_int_prg (const_PrioConfig cfg, PRG prg, const mp_int *src,
 BeaverTriple BeaverTriple_new (void);
 void BeaverTriple_clear (BeaverTriple t);
 
-int BeaverTriple_set_rand (const_PrioConfig cfg, 
+SECStatus BeaverTriple_set_rand (const_PrioConfig cfg, 
     BeaverTriple triple_a, 
     BeaverTriple triple_b);
 

@@ -20,8 +20,8 @@
 
 #include "mpi/mpi.h"
 #include "prio/config.h"
-#include "prio/fft.h"
 #include "prio/mparray.h"
+#include "prio/poly.h"
 #include "prio/util.h"
 #include "mutest.h"
 
@@ -38,7 +38,7 @@ mu_test__fft_one (void)
   P_CHECKA (points_out = MPArray_new(1));
 
   mp_set (&points_in->data[0], 3);
-  mu_check (fft(points_out, points_in, cfg, false) == SECSuccess);
+  mu_check (poly_fft(points_out, points_in, cfg, false) == SECSuccess);
 
   mu_check (mp_cmp_d(&points_in->data[0], 3) == 0);
   mu_check (mp_cmp_d(&points_out->data[0], 3) == 0);
@@ -63,7 +63,7 @@ mu_test__fft_roots (void)
   MP_CHECKC (mp_init (&tmp));
 
   mp_int roots[4];
-  fft_get_roots (roots, 4, cfg, false);
+  poly_fft_get_roots (roots, 4, cfg, false);
 
   for (int i=0; i<4; i++) {
     mp_exptmod_d(&roots[i], 4, &cfg->modulus, &tmp);
@@ -100,13 +100,13 @@ mu_test__fft_simple (void)
   MP_CHECKC (mp_init (&should_be));
   MP_CHECKC (mp_init (&tmp));
 
-  fft_get_roots (roots, nPoints, cfg, false);
+  poly_fft_get_roots (roots, nPoints, cfg, false);
 
   mp_set (&points_in->data[0], 3);
   mp_set (&points_in->data[1], 8);
   mp_set (&points_in->data[2], 7);
   mp_set (&points_in->data[3], 9);
-  mu_check (fft (points_out, points_in, cfg, false) == SECSuccess);
+  mu_check (poly_fft (points_out, points_in, cfg, false) == SECSuccess);
 
   for (int i=0; i<nPoints; i++) {
     mp_set (&should_be, 0);
@@ -152,7 +152,7 @@ mu_test__fft_invert (void)
   P_CHECKA (points_out = MPArray_new (nPoints));
   P_CHECKA (points_out2 = MPArray_new (nPoints));
 
-  fft_get_roots (roots, nPoints, cfg, false);
+  poly_fft_get_roots (roots, nPoints, cfg, false);
 
   mp_set (&points_in->data[0], 3);
   mp_set (&points_in->data[1], 8);
@@ -162,8 +162,8 @@ mu_test__fft_invert (void)
   mp_set (&points_in->data[5], 123123987);
   mp_set (&points_in->data[6], 2);
   mp_set (&points_in->data[7], 0);
-  mu_check (fft(points_out, points_in, cfg, false) == SECSuccess);
-  mu_check (fft(points_out2, points_out, cfg, true) == SECSuccess);
+  mu_check (poly_fft(points_out, points_in, cfg, false) == SECSuccess);
+  mu_check (poly_fft(points_out2, points_out, cfg, true) == SECSuccess);
 
   for (int i=0; i<nPoints; i++) {
     mu_check (mp_cmp (&points_out2->data[i], &points_in->data[i]) == 0);

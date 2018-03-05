@@ -22,7 +22,7 @@
 #include "mpi/mpi.h"
 #include "client.h"
 #include "config.h"
-#include "fft.h"
+#include "poly.h"
 #include "rand.h"
 #include "util.h"
 
@@ -66,7 +66,7 @@ data_polynomial_evals(const_PrioConfig cfg, const_MPArray data_in,
   }
 
   // Interpolate through the Nth roots of unity
-  P_CHECKC (fft(poly_f, points_f, cfg, true)); 
+  P_CHECKC (poly_fft(poly_f, points_f, cfg, true)); 
 
   // Evaluate at all 2N-th roots of unity. 
   // To do so, first resize the eval arrays and fill upper
@@ -75,7 +75,7 @@ data_polynomial_evals(const_PrioConfig cfg, const_MPArray data_in,
   P_CHECKC (MPArray_resize (evals_out, 2*N)); 
   
   // Evaluate at the 2N-th roots of unity
-  P_CHECKC (fft(evals_out, poly_f, cfg, false)); 
+  P_CHECKC (poly_fft(evals_out, poly_f, cfg, false)); 
 
 cleanup:
   MPArray_clear (points_f);
@@ -142,7 +142,7 @@ share_polynomials (const_PrioConfig cfg, const_MPArray data_in,
   int j = 0;
   for (int i = 1; i < evals_f_2N->len; i += 2) {
     MP_CHECKC (mp_mulmod (&evals_f_2N->data[i], &evals_g_2N->data[i], mod, &f0));
-    P_CHECKC (share_int_prg (cfg, prgB, &f0, &pA->shares.A.h_points->data[j])); 
+    P_CHECKC (PRG_share_int (prgB, &pA->shares.A.h_points->data[j], &f0, cfg)); 
     j++;
   }
 

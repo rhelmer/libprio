@@ -91,6 +91,23 @@ PRG_get_array (PRG prg, MPArray dst, const mp_int *mod)
   return SECSuccess;
 }
 
+SECStatus
+PRG_share_int (PRG prgB, mp_int *shareA, const mp_int *src, const_PrioConfig cfg)
+{
+  SECStatus rv = SECSuccess;
+  mp_int tmp;
+  MP_DIGITS (&tmp) = NULL;
+
+  MP_CHECKC (mp_init (&tmp));
+  P_CHECKC (PRG_get_int (prgB, &tmp, &cfg->modulus)); 
+  MP_CHECKC (mp_submod (src, &tmp, &cfg->modulus, shareA));
+
+cleanup:
+  mp_clear (&tmp);
+  return rv;
+}
+
+
 SECStatus 
 PRG_share_array (PRG prgB, MPArray arrA, 
     const_MPArray src, const_PrioConfig cfg)
@@ -102,7 +119,7 @@ PRG_share_array (PRG prgB, MPArray arrA,
   const int len = src->len;
 
   for (int i=0; i < len; i++) {
-    P_CHECK(share_int_prg (cfg, prgB, &src->data[i], &arrA->data[i]));
+    P_CHECK(PRG_share_int (prgB, &arrA->data[i], &src->data[i], cfg));
   }
 
   return rv;
