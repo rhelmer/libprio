@@ -10,6 +10,7 @@ src = [
     "fft.c",
     "mparray.c",
     "rand.c",
+    "prg.c",
     "server.c",
     "share.c",
 ]

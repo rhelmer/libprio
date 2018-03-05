@@ -19,7 +19,7 @@
 #define __UTIL_H__
 
 #include <mprio.h>
-#include "libmpi/mpi.h"
+#include "mpi/mpi.h"
 
 // Check a Prio error code and return failure if the call fails.
 #define P_CHECK(s) \

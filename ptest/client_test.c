@@ -16,7 +16,7 @@
 
 
 #include <mprio.h>
-#include "libmprio/util.h"
+#include "prio/util.h"
 #include "mutest.h"
 
 void 
@@ -28,8 +28,8 @@ mu_test_client__new (void)
   PrioPacketClient pB = NULL;
 
   P_CHECKA (cfg = PrioConfig_defaultNew());
-  P_CHECKA (pA = PrioPacketClient_new (cfg));
-  P_CHECKA (pB = PrioPacketClient_new (cfg));
+  P_CHECKA (pA = PrioPacketClient_new (cfg, PRIO_SERVER_A));
+  P_CHECKA (pB = PrioPacketClient_new (cfg, PRIO_SERVER_B));
 
   {
   const int ndata = PrioConfig_numDataFields (cfg);
@@ -62,12 +62,23 @@ test_client_agg (int nclients)
   PrioTotalShare tB = NULL;
   PrioPacketClient pA = NULL;
   PrioPacketClient pB = NULL;
+  PrioVerifier vA = NULL;
+  PrioVerifier vB = NULL;
 
   P_CHECKA (cfg = PrioConfig_defaultNew());
   P_CHECKA (sA = PrioServer_new (cfg, 0));
   P_CHECKA (sB = PrioServer_new (cfg, 1));
-  P_CHECKA (pA = PrioPacketClient_new (cfg));
-  P_CHECKA (pB = PrioPacketClient_new (cfg));
+  P_CHECKA (pA = PrioPacketClient_new (cfg, PRIO_SERVER_A));
+  P_CHECKA (pB = PrioPacketClient_new (cfg, PRIO_SERVER_B));
+  P_CHECKA (tA = PrioTotalShare_new ());
+  P_CHECKA (tB = PrioTotalShare_new ());
+  P_CHECKA (vA = PrioVerifier_new (sA));
+  P_CHECKA (vB = PrioVerifier_new (sB));
+
+  ServerSharedSecret secret = { 0x10, 0x20, 0x30, 0x40,
+                              0x10, 0x20, 0x30, 0x40,
+                              0x10, 0x20, 0x30, 0x40,
+                              0x10, 0x20, 0x30, 0x40 };
 
   const int ndata = PrioConfig_numDataFields (cfg);
 
@@ -80,12 +91,16 @@ test_client_agg (int nclients)
 
     for (int i=0; i < nclients; i++) {
       P_CHECKC (PrioPacketClient_set_data (cfg, data_items, pA, pB));
-      mu_check (PrioServer_aggregate (sA, pA) == SECSuccess);
-      mu_check (PrioServer_aggregate (sB, pB) == SECSuccess);
+              
+      P_CHECKC (PrioVerifier_set_data (vA, pA, secret));
+      P_CHECKC (PrioVerifier_set_data (vB, pB, secret));
+
+      mu_check (PrioServer_aggregate (sA, vA) == SECSuccess);
+      mu_check (PrioServer_aggregate (sB, vB) == SECSuccess);
     }
 
-    P_CHECKA (tA = PrioTotalShare_new (sA));
-    P_CHECKA (tB = PrioTotalShare_new (sB));
+    mu_check (PrioTotalShare_set_data (tA, sA) == SECSuccess);
+    mu_check (PrioTotalShare_set_data (tB, sB) == SECSuccess);
 
     unsigned long output[ndata];
     mu_check (PrioTotalShare_final (cfg, output, tA, tB) == SECSuccess);
@@ -100,6 +115,10 @@ test_client_agg (int nclients)
 
 cleanup:
   mu_check (rv == SECSuccess);
+
+  PrioVerifier_clear (vA);
+  PrioVerifier_clear (vB);
+
   PrioPacketClient_clear (pA);
   PrioPacketClient_clear (pB);
 

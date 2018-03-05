@@ -14,9 +14,11 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-
 #ifndef __MPARRAY_H__
 #define __MPARRAY_H__
+
+#include <mprio.h>
+#include "mpi/mpi.h"
 
 struct mparray {
   int len;
@@ -25,9 +27,6 @@ struct mparray {
 
 typedef struct mparray *MPArray;
 typedef const struct mparray *const_MPArray;
-
-#include <mprio.h>
-#include "libmpi/mpi.h"
 
 /*
  * Initialize an array of `mp_int`s of the given length.
@@ -59,11 +58,17 @@ SECStatus MPArray_resize (MPArray arr, int newlen);
  */
 MPArray MPArray_dup (const_MPArray src);
 
+/*
+ * Copies array from src to dst. Arrays must have the same length.
+ */
+SECStatus MPArray_copy (MPArray dst, const_MPArray src);
+
 /* For each index i into the array, set:
  *    dst[i] = dst[i] + to_add[i]   (modulo mod)
  */
 SECStatus MPArray_addmod (MPArray dst, const_MPArray to_add, 
     const mp_int *mod);
+
 
 #endif /* __MPARRAY_H__ */
 

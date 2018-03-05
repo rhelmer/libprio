@@ -1,0 +1,17 @@
+import os
+
+Import('env')
+
+penv = env.Clone()
+
+src = [
+    "aes.c",
+]
+
+libs = [
+]
+
+penv.Append(CFLAGS = "-UCBC -UECB -DCTR")
+penv.Append(LIBS = libs)
+penv.StaticLibrary("libaes", src)
+

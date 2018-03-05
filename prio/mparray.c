@@ -118,16 +118,27 @@ MPArray
 MPArray_dup (const_MPArray src)
 {
   MPArray dst = MPArray_new (src->len); 
+  if (!dst) return NULL;
+
+  SECStatus rv = MPArray_copy (dst, src); 
+  return (rv == SECSuccess) ? dst : NULL;
+}
+
+SECStatus
+MPArray_copy (MPArray dst, const_MPArray src)
+{
+  if (dst->len != src->len)
+    return SECFailure;
 
   for (int i=0; i<src->len; i++) {
     if (mp_copy(&src->data[i], &dst->data[i]) != MP_OKAY) {
-      MPArray_clear (dst);
-      return NULL;
+      return SECFailure;
     }
   }
 
-  return dst;
+  return SECSuccess;
 }
+
 
 SECStatus
 MPArray_set_share (MPArray arrA, MPArray arrB, 
@@ -140,11 +151,12 @@ MPArray_set_share (MPArray arrA, MPArray arrB,
   const int len = src->len;
 
   for (int i=0; i < len; i++) {
-    P_CHECK(share_int(cfg, &src->data[i], &arrA->data[i], &arrB->data[i])); 
+    P_CHECK(share_int (cfg, &src->data[i], &arrA->data[i], &arrB->data[i])); 
   }
 
   return rv;
 }
+
 
 void 
 MPArray_clear (MPArray arr)

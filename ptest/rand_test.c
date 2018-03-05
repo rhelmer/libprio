@@ -15,9 +15,9 @@
  */
 
 
-#include "libmpi/mpi.h"
-#include "libmprio/rand.h"
-#include "libmprio/util.h"
+#include "mpi/mpi.h"
+#include "prio/rand.h"
+#include "prio/util.h"
 #include "mutest.h"
 
 void 
@@ -126,8 +126,7 @@ test_rand_distribution (int limit)
   }
 
 cleanup:
-  if (rv != SECSuccess)
-    mu_check (false);
+  mu_check (rv == SECSuccess);
   mp_clear (&max);
   mp_clear (&out);
 }
@@ -181,8 +180,7 @@ test_rand_distribution_large (mp_int *max)
   }
 
 cleanup:
-  if (rv != SECSuccess)
-    mu_check (false);
+  mu_check (rv == SECSuccess);
   mp_clear (&out);
 }
 
@@ -199,7 +197,6 @@ mu_test__rand_distribution_large (void)
   test_rand_distribution_large (&max);
 
 cleanup:
-  if (rv != SECSuccess)
-    mu_check (false);
+  mu_check (rv == SECSuccess);
   mp_clear (&max);
 }

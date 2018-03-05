@@ -22,14 +22,14 @@
 #include "share.h"
 
 struct prio_total_share {
+  ServerId idx;
   MPArray data_shares;
 };
 
 struct prio_server {
   const_PrioConfig cfg;
 
-  // Index of the server (0 or 1)
-  int idx;
+  ServerId idx;
 
   // The accumulated data values from the clients.
   MPArray data_shares;
@@ -37,9 +37,11 @@ struct prio_server {
 
 struct prio_verifier {
   const_PrioConfig cfg;
-  int idx;
+  ServerId idx;
 
   const_PrioPacketClient clientp;
+  MPArray data_sharesB;
+  MPArray h_pointsB;
 
   mp_int share_fR;
   mp_int share_gR;

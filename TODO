@@ -1,0 +1,17 @@
+
+* pclient.c:  I think we need to expand the comments a bit.
+
+ - for server part: 
+
+ -  The comment is a unclear on exactly how and when R should be chosen (also, it will be helpful to say that the shared secret is R).  
+Moreover, it is not immediately clear why to choose a new point R for each client.   Using the proposed method in the comments, all the points R will be known ahead of time to both servers, so if one server colludes with a dishonest client, they can fool the honest server.  If we are not worried about that, then why choose a new R for every client?   If we are worried about this, then should the point R be chosen *after* every client sends its pA,pB?  
+
+
+
+* client.c and server.c:
+
+The code is a great description of how the protocol works,  For each API
+function, it would be helpful to write a comment just above the function
+definition explaining what the arguments mean.
+
+

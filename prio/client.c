@@ -16,9 +16,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <strings.h>
 #include <mprio.h>
 
-#include "libmpi/mpi.h"
+#include "mpi/mpi.h"
 #include "client.h"
 #include "config.h"
 #include "fft.h"
@@ -86,7 +87,7 @@ cleanup:
 
 static SECStatus
 share_polynomials (const_PrioConfig cfg, const_MPArray data_in,
-    PrioPacketClient pA, PrioPacketClient pB)
+    PrioPacketClient pA, PrioPacketClient pB, PRG prgB)
 {
   SECStatus rv = SECSuccess;
   const mp_int *mod = &cfg->modulus;
@@ -129,8 +130,7 @@ share_polynomials (const_PrioConfig cfg, const_MPArray data_in,
   P_CHECKC (share_int (cfg, &f0, &pA->h0_share, &pB->h0_share)); 
 
   const int lenN = (evals_f_2N->len/2);
-  P_CHECKC (MPArray_resize (pA->h_points, lenN)); 
-  P_CHECKC (MPArray_resize (pB->h_points, lenN)); 
+  P_CHECKC (MPArray_resize (pA->shares.A.h_points, lenN)); 
 
   // We need to send to the servers the evaluations of
   //   f(r) * g(r)
@@ -142,8 +142,7 @@ share_polynomials (const_PrioConfig cfg, const_MPArray data_in,
   int j = 0;
   for (int i = 1; i < evals_f_2N->len; i += 2) {
     MP_CHECKC (mp_mulmod (&evals_f_2N->data[i], &evals_g_2N->data[i], mod, &f0));
-    P_CHECKC (share_int (cfg, &f0, 
-          &pA->h_points->data[j], &pB->h_points->data[j])); 
+    P_CHECKC (share_int_prg (cfg, prgB, &f0, &pA->shares.A.h_points->data[j])); 
     j++;
   }
 
@@ -157,28 +156,43 @@ cleanup:
 }
 
 PrioPacketClient
-PrioPacketClient_new (const_PrioConfig cfg)
+PrioPacketClient_new (const_PrioConfig cfg, ServerId for_server)
 {
+  SECStatus rv = SECSuccess; 
   const int data_len = cfg->num_data_fields;
   PrioPacketClient p = NULL;
   p = malloc (sizeof (*p));
   if (!p) return NULL;
 
+  p->for_server = for_server;
   p->triple = NULL;
   MP_DIGITS (&p->f0_share) = NULL;
   MP_DIGITS (&p->g0_share) = NULL;
   MP_DIGITS (&p->h0_share) = NULL;
-  p->data_shares = NULL;
-  p->h_points = NULL;
- 
-  SECStatus rv = SECSuccess; 
+
+  switch (p->for_server) {
+    case PRIO_SERVER_A:
+      p->shares.A.data_shares = NULL;
+      p->shares.A.h_points = NULL;
+      break;
+    case PRIO_SERVER_B:
+      bzero (p->shares.B.seed, PRG_SEED_LENGTH);
+      break;
+    default:
+      // Should never get here
+      rv = SECFailure;
+      goto cleanup;
+  }
 
   MP_CHECKC (mp_init (&p->f0_share)); 
   MP_CHECKC (mp_init (&p->g0_share));
   MP_CHECKC (mp_init (&p->h0_share));
   P_CHECKA (p->triple = BeaverTriple_new ());
-  P_CHECKA (p->data_shares = MPArray_new (data_len));
-  P_CHECKA (p->h_points = MPArray_new (0));
+
+  if (p->for_server == PRIO_SERVER_A) {
+    P_CHECKA (p->shares.A.data_shares = MPArray_new (data_len));
+    P_CHECKA (p->shares.A.h_points = MPArray_new (0));
+  }
 
 cleanup:
   if (rv != SECSuccess) {
@@ -194,18 +208,24 @@ PrioPacketClient_set_data (const_PrioConfig cfg, const bool *data_in,
     PrioPacketClient pA, PrioPacketClient pB)
 {
   MPArray client_data = NULL;
+  PRG prgB = NULL;
   SECStatus rv = SECSuccess;
   const int data_len = cfg->num_data_fields;
 
   if (!data_in) return SECFailure; 
 
+  P_CHECKC (PRGSeed_randomize (&pB->shares.B.seed));
+  P_CHECKA (prgB = PRG_new (pB->shares.B.seed));
+
   P_CHECKC (BeaverTriple_set_rand (cfg, pA->triple, pB->triple)); 
   P_CHECKA (client_data = MPArray_new_bool (data_len, data_in));
-  P_CHECKC (MPArray_set_share (pA->data_shares, pB->data_shares, client_data, cfg)); 
-  P_CHECKC (share_polynomials (cfg, client_data, pA, pB)); 
+  P_CHECKC (PRG_share_array (prgB, pA->shares.A.data_shares, 
+        client_data, cfg)); 
+  P_CHECKC (share_polynomials (cfg, client_data, pA, pB, prgB)); 
 
 cleanup:
   MPArray_clear (client_data);
+  PRG_clear (prgB);
 
   return rv;
 }
@@ -214,8 +234,12 @@ void
 PrioPacketClient_clear (PrioPacketClient p)
 {
   if (p == NULL) return;
-  MPArray_clear (p->h_points);
-  MPArray_clear (p->data_shares);
+
+  if (p->for_server == PRIO_SERVER_A) {
+    MPArray_clear (p->shares.A.h_points);
+    MPArray_clear (p->shares.A.data_shares);
+  }
+
   BeaverTriple_clear (p->triple);
   mp_clear (&p->f0_share);
   mp_clear (&p->g0_share);

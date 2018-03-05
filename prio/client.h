@@ -19,18 +19,41 @@
 #define __CLIENT_H__
 
 #include "mparray.h"
+#include "prg.h"
 #include "share.h"
 
-/*
- * The data that a Prio client sends to each of the two
- * servers.
- */
-struct prio_packet_client {
-  struct beaver_triple *triple;
 
-  mp_int f0_share, g0_share, h0_share;
+struct server_a_data {
+  // These values are only set for server A.
   MPArray data_shares;
   MPArray h_points;
+};
+
+struct server_b_data {
+  // This value is only used for server B.
+  //
+  // We use a pseudo-random generator to compress the secret-shared data
+  // values. See Appendix I of the Prio paper (the paragraph starting
+  // "Optimization: PRG secret sharing.") for details on this.
+  PRGSeed seed;
+};
+
+/*
+ * The data that a Prio client sends to each server. 
+ */
+struct prio_packet_client {
+  // TODO: Can also use a PRG to avoid need for sending Beaver triple shares.
+  // Since this optimization only saves ~30 bytes of communication, we haven't
+  // bothered implementing it yet.
+  BeaverTriple triple;
+
+  mp_int f0_share, g0_share, h0_share;
+  ServerId for_server;
+
+  union {
+    struct server_a_data A;
+    struct server_b_data B;
+  } shares;
 };
 
 

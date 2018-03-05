@@ -18,11 +18,11 @@
 #include <stdio.h>
 #include <mprio.h>
 
-#include "libmpi/mpi.h"
-#include "libmprio/config.h"
-#include "libmprio/fft.h"
-#include "libmprio/mparray.h"
-#include "libmprio/util.h"
+#include "mpi/mpi.h"
+#include "prio/config.h"
+#include "prio/fft.h"
+#include "prio/mparray.h"
+#include "prio/util.h"
 #include "mutest.h"
 
 void 

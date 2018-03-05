@@ -121,14 +121,15 @@ conf.Finish()
 Export('env')
 
 # Set compile options for binaries
-env.Append(LIBS = ["mprio", "mpi", "nss3", "nspr4"], \
-  LIBPATH = ['#build/libmprio', "#build/libmpi"])
+env.Append(LIBS = ["mprio", "mpi", "nss3", "nspr4", "aes"], \
+  LIBPATH = ['#build/aes', '#build/prio', "#build/mpi"])
 
 # Add header files
 env.Append(CPPPATH = ["#include", "#."])
 
-SConscript('libmprio/SConscript', variant_dir='build/libmprio')
-SConscript('libmpi/SConscript', variant_dir='build/libmpi')
+SConscript('aes/SConscript', variant_dir='build/aes')
+SConscript('prio/SConscript', variant_dir='build/prio')
+SConscript('mpi/SConscript', variant_dir='build/mpi')
 
 # Utilities
 if env["BUILD_BINARIES"]:

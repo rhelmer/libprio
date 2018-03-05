@@ -18,8 +18,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "libmprio/rand.h"
-#include "libmprio/util.h"
+#include "prio/rand.h"
+#include "prio/util.h"
 
 int
 verify_full (void)
@@ -64,9 +64,23 @@ verify_full (void)
     P_CHECKA (sA = PrioServer_new (cfg, 0));
     P_CHECKA (sB = PrioServer_new (cfg, 1));
 
+    // Initialize empty verifier objects
+    P_CHECKA (vA = PrioVerifier_new (sA)); 
+    P_CHECKA (vB = PrioVerifier_new (sB));
+
     // Initize two empty client data packets.
-    P_CHECKA (pA = PrioPacketClient_new (cfg));
-    P_CHECKA (pB = PrioPacketClient_new (cfg));
+    P_CHECKA (pA = PrioPacketClient_new (cfg, PRIO_SERVER_A));
+    P_CHECKA (pB = PrioPacketClient_new (cfg, PRIO_SERVER_B));
+
+    // Initialize shares of final aggregate statistics
+    P_CHECKA (tA = PrioTotalShare_new ());
+    P_CHECKA (tB = PrioTotalShare_new ());
+
+    // Initialize shares of verification packets
+    P_CHECKA (p1A = PrioPacketVerify1_new ());
+    P_CHECKA (p1B = PrioPacketVerify1_new ());
+    P_CHECKA (p2A = PrioPacketVerify2_new ());
+    P_CHECKA (p2B = PrioPacketVerify2_new ());
 
     // Generate client data packets.
     for (int c=0; c < nclients; c++) {
@@ -123,18 +137,18 @@ verify_full (void)
 
       // Use the shared secret between the servers to set up 
       // a Prio verifier object.
-      P_CHECKA (vA = PrioVerifier_new (sA, pA, sec));
-      P_CHECKA (vB = PrioVerifier_new (sB, pB, sec));
+      P_CHECKC (PrioVerifier_set_data (vA, pA, sec));
+      P_CHECKC (PrioVerifier_set_data (vB, pB, sec));
 
       // Both servers produce a packet1. Server A sends p1A to Server B
       // and vice versa.
-      P_CHECKA (p1A = PrioVerifier_packet1(vA));
-      P_CHECKA (p1B = PrioVerifier_packet1(vB));
+      P_CHECKC (PrioPacketVerify1_set_data (p1A, vA));
+      P_CHECKC (PrioPacketVerify1_set_data (p1B, vB));
 
       // Both servers produce a packet2. Server A sends p2A to Server B
       // and vice versa.
-      P_CHECKA (p2A = PrioVerifier_packet2(vA, p1A, p1B));
-      P_CHECKA (p2B = PrioVerifier_packet2(vB, p1A, p1B));
+      P_CHECKC (PrioPacketVerify2_set_data(p2A, vA, p1A, p1B));
+      P_CHECKC (PrioPacketVerify2_set_data(p2B, vB, p1A, p1B));
 
       // Using p2A and p2B, the servers can determine whether the request
       // is valid. (In fact, only Server A needs to perform this 
@@ -145,8 +159,8 @@ verify_full (void)
 
       // If we get here, the client packet is valid, so add it to the aggregate
       // statistic counter for both servers.
-      P_CHECKC (PrioServer_aggregate (sA, pA));
-      P_CHECKC (PrioServer_aggregate (sB, pB));
+      P_CHECKC (PrioServer_aggregate (sA, vA));
+      P_CHECKC (PrioServer_aggregate (sB, vB));
     }
 
     // The servers repeat the steps above for each client submission.
@@ -157,8 +171,8 @@ verify_full (void)
     // their shares of the aggregate statistics. 
     //
     // Server B can send tB to Server A.
-    P_CHECKA (tA = PrioTotalShare_new (sA));
-    P_CHECKA (tB = PrioTotalShare_new (sB));
+    P_CHECKC (PrioTotalShare_set_data (tA, sA));
+    P_CHECKC (PrioTotalShare_set_data (tB, sB));
 
     // Once Server A has tA and tB, it can learn the aggregate statistics
     // in the clear.
@@ -172,6 +186,10 @@ verify_full (void)
   }
 
 cleanup:
+  if (rv != SECSuccess) {
+    fprintf (stderr, "Warning: unexpected failure.\n");
+  }
+
   PrioTotalShare_clear (tA);
   PrioTotalShare_clear (tB);
 

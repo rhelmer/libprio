@@ -29,7 +29,18 @@
  */
 #define SOUNDNESS_PARAM 20
 
+/*
+ * Shared secret between the two Prio servers.
+ */
 typedef unsigned char ServerSharedSecret[SOUNDNESS_PARAM];
+
+/*
+ * Type for each of the two servers.
+ */
+typedef enum {
+  PRIO_SERVER_A,
+  PRIO_SERVER_B
+} ServerId;
 
 /*
  * Opaque types
@@ -79,9 +90,10 @@ int PrioConfig_numDataFields (const_PrioConfig cfg);
 /*
  * The PrioPacketClient object holds the encoded client data.
  * The client sends one packet to server A and one packet to
- * server B.
+ * server B. The `for_server` parameter determines which server
+ * the packet is for.
  */
-PrioPacketClient PrioPacketClient_new (const_PrioConfig cfg);
+PrioPacketClient PrioPacketClient_new (const_PrioConfig cfg, ServerId for_server);
 void PrioPacketClient_clear (PrioPacketClient p);
 
 /*
@@ -100,9 +112,8 @@ SECStatus PrioPacketClient_set_data (const_PrioConfig cfg, const bool *data_in,
 
 /*
  * The PrioServer object holds the state of the Prio servers.
- * Server A gets server_idx 0 and server B gets server_idx 1.
  */
-PrioServer PrioServer_new (const_PrioConfig cfg, int server_idx);
+PrioServer PrioServer_new (const_PrioConfig cfg, ServerId server_idx);
 void PrioServer_clear (PrioServer s);
 
 
@@ -119,18 +130,25 @@ void PrioServer_clear (PrioServer s);
  * In practice, the servers can share a short seed (e.g., 128 bits)
  * and can use AES in counter mode to generate many shared
  * secrets without interacting further.
+ *
+ * TODO: Use AES as PRG to generate shared secret.
  */
-PrioVerifier PrioVerifier_new (PrioServer s, const_PrioPacketClient p,
-    const ServerSharedSecret secret);
+PrioVerifier PrioVerifier_new (PrioServer s);
 void PrioVerifier_clear (PrioVerifier v);
+
+SECStatus PrioVerifier_set_data (PrioVerifier v, const_PrioPacketClient p,
+    const ServerSharedSecret secret);
 
 /*
  * Generate the first packet that servers need to exchange
  * to verify the client's submission. This should be sent
  * over a TLS connection between the servers.
  */
-PrioPacketVerify1 PrioVerifier_packet1 (const_PrioVerifier v);
-void PrioPacketVerify1_clear (PrioPacketVerify1 p);
+PrioPacketVerify1 PrioPacketVerify1_new (void);
+void PrioPacketVerify1_clear (PrioPacketVerify1 p1);
+
+SECStatus PrioPacketVerify1_set_data (PrioPacketVerify1 p1,
+    const_PrioVerifier v);
 
 /* 
  * Generate the second packet that the servers need to exchange
@@ -139,9 +157,11 @@ void PrioPacketVerify1_clear (PrioPacketVerify1 p);
  *
  * This should be sent over a TLS connection between the servers.
  */
-PrioPacketVerify2 PrioVerifier_packet2 (const_PrioVerifier v,
-    const_PrioPacketVerify1 pA, const_PrioPacketVerify1 pB);
+PrioPacketVerify2 PrioPacketVerify2_new (void);
 void PrioPacketVerify2_clear (PrioPacketVerify2 p);
+
+SECStatus PrioPacketVerify2_set_data (PrioPacketVerify2 p2, const_PrioVerifier v,
+    const_PrioPacketVerify1 p1A, const_PrioPacketVerify1 p1B);
 
 /* 
  * Use the PrioPacketVerify2s from both servers to check whether
@@ -151,22 +171,24 @@ SECStatus PrioVerifier_isValid (const_PrioVerifier v,
     const_PrioPacketVerify2 pA, const_PrioPacketVerify2 pB);
 
 /*
- * Each of the two servers calls this routine to aggregate a data
- * submission from a client.
+ * Each of the two servers calls this routine to aggregate the data
+ * submission from a client that is included in the PrioVerifier object.
  *
  * IMPORTANT: This routine does not check the validity of the client's
  * data packet. The servers must execute the verification checks 
  * above before aggregating any client data.
  */
-SECStatus PrioServer_aggregate (PrioServer s, const_PrioPacketClient p);
+SECStatus PrioServer_aggregate (PrioServer s, PrioVerifier v);
 
 /* 
  * After the servers have aggregated data packets from "enough" clients
  * (this determines the anonymity set size), each server runs this routine
  * to get a share of the aggregate statistics. 
  */
-PrioTotalShare PrioTotalShare_new (const_PrioServer s);
+PrioTotalShare PrioTotalShare_new (void);
 void PrioTotalShare_clear (PrioTotalShare t);
+
+SECStatus PrioTotalShare_set_data (PrioTotalShare t, const_PrioServer s);
 
 /*
  * Read the output data into an array of unsigned longs. You should

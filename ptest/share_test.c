@@ -17,11 +17,11 @@
 
 #include <mprio.h>
 
-#include "libmpi/mpi.h"
-#include "libmprio/config.h"
-#include "libmprio/mparray.h"
-#include "libmprio/share.h"
-#include "libmprio/util.h"
+#include "mpi/mpi.h"
+#include "prio/config.h"
+#include "prio/mparray.h"
+#include "prio/share.h"
+#include "prio/util.h"
 #include "mutest.h"
 
 void 
@@ -68,7 +68,9 @@ mu_test_arr (void)
 {
   SECStatus rv = SECSuccess;
   MPArray arr = NULL;
+  MPArray arr2 = NULL;
   P_CHECKA (arr = MPArray_new (10));
+  P_CHECKA (arr2 = MPArray_new (7));
 
   for (int i=0; i<10; i++) {
     mp_set (&arr->data[i], i);
@@ -85,7 +87,13 @@ mu_test_arr (void)
     mu_check (mp_cmp_d (&arr->data[i], i) == 0);
   }
 
+  P_CHECKC (MPArray_copy (arr2, arr));
+  for (int i=10; i<7; i++) {
+    mu_check (mp_cmp (&arr->data[i], &arr2->data[i]) == 0);
+  }
+
 cleanup:
   mu_check (rv == SECSuccess);
   MPArray_clear (arr);
+  MPArray_clear (arr2);
 }

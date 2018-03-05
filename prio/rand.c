@@ -35,9 +35,12 @@ rand_init (void)
   return SECSuccess;
 }
 
-SECStatus 
-rand_bytes (unsigned char *out, int n_bytes)
+static SECStatus 
+rand_bytes_internal (void *user_data, unsigned char *out, size_t n_bytes)
 {
+  // No pointer should ever be passed in.
+  if (user_data != NULL)
+    return SECFailure;
   if (!NSS_IsInitialized ()) {
     PRIO_DEBUG ("NSS not initialized. Call rand_init() first.");
     return SECFailure;
@@ -53,8 +56,21 @@ rand_bytes (unsigned char *out, int n_bytes)
   return rv;
 }
 
+SECStatus 
+rand_bytes (unsigned char *out, size_t n_bytes)
+{
+  return rand_bytes_internal (NULL, out, n_bytes);
+}
+
 SECStatus
 rand_int (mp_int *out, const mp_int *max)
+{
+  return rand_int_rng (out, max, &rand_bytes_internal, NULL);
+}
+
+SECStatus
+rand_int_rng (mp_int *out, const mp_int *max, 
+    RandBytesFunc rng_func, void *user_data)
 {
   SECStatus rv = SECSuccess;
 
@@ -79,10 +95,10 @@ rand_int (mp_int *out, const mp_int *max)
 
   do {
     // Use  rejection sampling to find a value strictly less than max.
-    P_CHECK (rand_bytes (buf, nbytes));
+    P_CHECK (rng_func (user_data, buf, nbytes));
 
     // Mask off high-order bits that we will never need.
-    P_CHECK (rand_bytes (&buf[0], 1));
+    P_CHECK (rng_func (user_data, &buf[0], 1));
     if (mask) buf[0] &= mask;
 
     MP_CHECK (mp_read_unsigned_octets (out, buf, nbytes));

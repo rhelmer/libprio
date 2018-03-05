@@ -15,7 +15,7 @@
  */
 
 
-#include "libmpi/mpi.h"
+#include "mpi/mpi.h"
 #include "mutest.h"
 
 

@@ -14,10 +14,11 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdlib.h>
 #include <mprio.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-#include "libmpi/mpi.h"
+#include "mpi/mpi.h"
 #include "client.h"
 #include "fft.h"
 #include "mparray.h"
@@ -25,7 +26,7 @@
 #include "util.h"
 
 PrioServer 
-PrioServer_new (const_PrioConfig cfg, int server_idx)
+PrioServer_new (const_PrioConfig cfg, ServerId server_idx)
 {
   PrioServer s = malloc (sizeof (*s));
   if (!s) return NULL;
@@ -50,24 +51,49 @@ PrioServer_clear (PrioServer s)
 }
 
 SECStatus
-PrioServer_aggregate (PrioServer s, const_PrioPacketClient p)
+PrioServer_aggregate (PrioServer s, PrioVerifier v)
 {
-  return MPArray_addmod (s->data_shares, p->data_shares, &s->cfg->modulus);  
+  MPArray arr = NULL;
+  switch (s->idx) {
+    case PRIO_SERVER_A:
+      arr = v->clientp->shares.A.data_shares;
+      break;
+    case PRIO_SERVER_B:
+      arr = v->data_sharesB;
+      break;
+    default:
+      // Should never get here
+      return SECFailure;
+  }
+
+  return MPArray_addmod (s->data_shares, arr, &s->cfg->modulus);  
 }
 
 PrioTotalShare 
-PrioTotalShare_new (const_PrioServer s)
+PrioTotalShare_new (void)
 {
   PrioTotalShare t = malloc (sizeof (*t));
   if (!t) return NULL;
 
-  t->data_shares = MPArray_dup (s->data_shares);
+  t->data_shares = MPArray_new (0);
   if (!t->data_shares) {
     free (t);
     return NULL;
   }
 
   return t;
+}
+
+SECStatus
+PrioTotalShare_set_data (PrioTotalShare t, const_PrioServer s)
+{
+  t->idx = s->idx;
+  SECStatus rv = SECSuccess;
+ 
+  P_CHECK (MPArray_resize (t->data_shares, s->data_shares->len));
+  P_CHECK (MPArray_copy (t->data_shares, s->data_shares));
+
+  return rv;
 }
 
 SECStatus
@@ -78,6 +104,8 @@ PrioTotalShare_final (const_PrioConfig cfg,
   if (tA->data_shares->len != cfg->num_data_fields)
     return SECFailure;
   if (tA->data_shares->len != tB->data_shares->len)
+    return SECFailure;
+  if (tA->idx != PRIO_SERVER_A || tB->idx != PRIO_SERVER_B)
     return SECFailure;
 
   SECStatus rv = SECSuccess;
@@ -150,6 +178,30 @@ cleanup:
   return rv;
 }
 
+inline static mp_int *
+get_data_share (const_PrioVerifier v, int i) {
+  switch (v->idx) {
+    case PRIO_SERVER_A:
+      return &v->clientp->shares.A.data_shares->data[i];
+    case PRIO_SERVER_B:
+      return &v->data_sharesB->data[i];
+  }
+  // Should never get here
+  return NULL;
+}
+
+inline static mp_int *
+get_h_share (const_PrioVerifier v, int i) {
+  switch (v->idx) {
+    case PRIO_SERVER_A:
+      return &v->clientp->shares.A.h_points->data[i];
+    case PRIO_SERVER_B:
+      return &v->h_pointsB->data[i];
+  }
+  // Should never get here
+  return NULL;
+}
+
 /*
  * Build shares of the polynomials f, g, and h used in the Prio verification
  * routine and evalute these polynomials at a random point determined
@@ -190,7 +242,8 @@ compute_shares (PrioVerifier v, const ServerSharedSecret secret,
 
   for (int i=1; i<n; i++) {
     // [f](i) = i-th data share
-    MP_CHECKC (mp_copy(&p->data_shares->data[i-1], &points_f->data[i]));
+    const mp_int *data_i_minus_1 = get_data_share(v, i-1);
+    MP_CHECKC (mp_copy(data_i_minus_1, &points_f->data[i]));
 
     // [g](i) = i-th data share minus 1
     // Only need to shift the share for 0-th server
@@ -203,7 +256,8 @@ compute_shares (PrioVerifier v, const ServerSharedSecret secret,
 
   int j = 0;
   for (int i=1; i<2*N; i+=2) {
-    MP_CHECKC (mp_copy(&p->h_points->data[j++], &points_h->data[i]));
+    const mp_int *h_point_j = get_h_share (v, j++);
+    MP_CHECKC (mp_copy(h_point_j, &points_h->data[i]));
   }
 
   P_CHECKC (interp_evaluate (&v->share_fR, points_f, &eval_at, v->cfg));
@@ -218,15 +272,17 @@ cleanup:
   return rv;
 }
 
-PrioVerifier PrioVerifier_new (PrioServer s, const_PrioPacketClient p, 
-    const ServerSharedSecret secret)
+PrioVerifier PrioVerifier_new (PrioServer s)
 {
-  SECStatus rv;
+  SECStatus rv = SECSuccess;
   PrioVerifier v = malloc (sizeof *v);
   if (!v) return NULL;
+
   v->cfg = s->cfg;
   v->idx = s->idx;
-  v->clientp = p;
+  v->clientp = NULL;
+  v->data_sharesB = NULL;
+  v->h_pointsB = NULL;
 
   MP_DIGITS (&v->share_fR) = NULL;
   MP_DIGITS (&v->share_gR) = NULL;
@@ -236,12 +292,11 @@ PrioVerifier PrioVerifier_new (PrioServer s, const_PrioPacketClient p,
   MP_CHECKC (mp_init (&v->share_gR));
   MP_CHECKC (mp_init (&v->share_hR)); 
 
-  // TODO: This can be done much faster by using the combined
-  // interpolate-and-evaluate optimization described in the 
-  // Prio paper.
-  //
-  // Compute share of f(r), g(r), h(r)
-  P_CHECKC (compute_shares (v, secret, p)); 
+  const int N = next_power_of_two (s->cfg->num_data_fields + 1);
+  if (v->idx == PRIO_SERVER_B) {
+    P_CHECKA (v->data_sharesB = MPArray_new (v->cfg->num_data_fields));
+    P_CHECKA (v->h_pointsB = MPArray_new (N));
+  }
 
 cleanup:
   if (rv != SECSuccess) {
@@ -253,9 +308,50 @@ cleanup:
 }
 
 
+SECStatus PrioVerifier_set_data (PrioVerifier v, const_PrioPacketClient p, 
+    const ServerSharedSecret secret)
+{
+  PRG prgB = NULL;
+  if (p->for_server != v->idx)
+    return SECFailure;
+
+  const int N = next_power_of_two (v->cfg->num_data_fields + 1);
+  if (v->idx == PRIO_SERVER_A) {
+    // Check that packet has the correct number of data fields
+    if (p->shares.A.data_shares->len != v->cfg->num_data_fields)
+      return SECFailure;
+    if (p->shares.A.h_points->len != N)
+      return SECFailure;
+  }
+
+  v->clientp = p;
+  SECStatus rv = SECSuccess;
+
+  if (v->idx == PRIO_SERVER_B) {
+    P_CHECKA (prgB = PRG_new (v->clientp->shares.B.seed));
+    P_CHECKC (PRG_get_array (prgB, v->data_sharesB, &v->cfg->modulus));
+    P_CHECKC (PRG_get_array (prgB, v->h_pointsB, &v->cfg->modulus));
+  }
+
+  // TODO: This can be done much faster by using the combined
+  // interpolate-and-evaluate optimization described in the 
+  // Prio paper.
+  //
+  // Compute share of f(r), g(r), h(r)
+  P_CHECKC (compute_shares (v, secret, p)); 
+
+cleanup:
+
+  PRG_clear (prgB);
+  return rv;
+}
+
+
 void PrioVerifier_clear (PrioVerifier v)
 {
   if (v == NULL) return;
+  MPArray_clear (v->data_sharesB); 
+  MPArray_clear (v->h_pointsB); 
   mp_clear (&v->share_fR);
   mp_clear (&v->share_gR);
   mp_clear (&v->share_hR);
@@ -263,11 +359,8 @@ void PrioVerifier_clear (PrioVerifier v)
 }
 
 PrioPacketVerify1 
-PrioVerifier_packet1 (const_PrioVerifier v)
+PrioPacketVerify1_new (void)
 {
-  // See the Prio paper for details on how this works.
-  // Appendix C descrives the MPC protocol used here.
-
   SECStatus rv = SECSuccess;
   PrioPacketVerify1 p = malloc (sizeof *p);
   if (!p) return NULL;
@@ -277,15 +370,6 @@ PrioVerifier_packet1 (const_PrioVerifier v)
 
   MP_CHECKC (mp_init (&p->share_d));
   MP_CHECKC (mp_init (&p->share_e));
-
-  // Compute corrections.
-  //   [d] = [f(r)] - [a]
-  MP_CHECKC (mp_sub (&v->share_fR, &v->clientp->triple->a, &p->share_d));
-  MP_CHECKC (mp_mod (&p->share_d, &v->cfg->modulus, &p->share_d));
-
-  //   [e] = [g(r)] - [b]
-  MP_CHECKC (mp_sub (&v->share_gR, &v->clientp->triple->b, &p->share_e));
-  MP_CHECKC (mp_mod (&p->share_e, &v->cfg->modulus, &p->share_e));
 
 cleanup:
   if (rv != SECSuccess) {
@@ -305,67 +389,40 @@ PrioPacketVerify1_clear (PrioPacketVerify1 p)
   free (p);
 }
 
+SECStatus
+PrioPacketVerify1_set_data (PrioPacketVerify1 p1, const_PrioVerifier v)
+{
+  // See the Prio paper for details on how this works.
+  // Appendix C descrives the MPC protocol used here.
+
+  SECStatus rv = SECSuccess;
+
+  // Compute corrections.
+  //   [d] = [f(r)] - [a]
+  MP_CHECK (mp_sub (&v->share_fR, &v->clientp->triple->a, &p1->share_d));
+  MP_CHECK (mp_mod (&p1->share_d, &v->cfg->modulus, &p1->share_d));
+
+  //   [e] = [g(r)] - [b]
+  MP_CHECK (mp_sub (&v->share_gR, &v->clientp->triple->b, &p1->share_e));
+  MP_CHECK (mp_mod (&p1->share_e, &v->cfg->modulus, &p1->share_e));
+
+  return rv;
+}
+
 PrioPacketVerify2 
-PrioVerifier_packet2 (const_PrioVerifier v,
-    const_PrioPacketVerify1 pA, const_PrioPacketVerify1 pB)
+PrioPacketVerify2_new (void)
 {
   SECStatus rv = SECSuccess;
   PrioPacketVerify2 p = malloc (sizeof *p);
   if (!p) return NULL;
 
-  mp_int d, e, tmp;
   MP_DIGITS (&p->share_out) = NULL;
-  MP_DIGITS (&d) = NULL;
-  MP_DIGITS (&e) = NULL;
-  MP_DIGITS (&tmp) = NULL;
-
   MP_CHECKC (mp_init (&p->share_out));
-  MP_CHECKC (mp_init (&d));
-  MP_CHECKC (mp_init (&e));
-  MP_CHECKC (mp_init (&tmp));
-
-  // Compute share of f(r)*g(r)
-  //    [f(r)*g(r)] = [d*e/2] + d[b] + e[a] + [c]
- 
- // Compute d 
-  MP_CHECKC (mp_addmod (&pA->share_d, &pB->share_d, &v->cfg->modulus, &d));
-  // Compute e
-  MP_CHECKC (mp_addmod (&pA->share_e, &pB->share_e, &v->cfg->modulus, &e));
-
-  // Compute d*e
-  MP_CHECKC (mp_mulmod (&d, &e, &v->cfg->modulus, &p->share_out));
-  // out = d*e/2
-  MP_CHECKC (mp_mulmod (&p->share_out, &v->cfg->inv2, 
-        &v->cfg->modulus, &p->share_out));
-
-  // Compute d[b] 
-  MP_CHECKC (mp_mulmod (&d, &v->clientp->triple->b, 
-        &v->cfg->modulus, &tmp));
-  // out = d*e/2 + d[b] 
-  MP_CHECKC (mp_addmod (&p->share_out, &tmp, &v->cfg->modulus, &p->share_out));
-
-  // Compute e[a] 
-  MP_CHECKC (mp_mulmod (&e, &v->clientp->triple->a, &v->cfg->modulus, &tmp));
-  // out = d*e/2 + d[b] + e[a]
-  MP_CHECKC (mp_addmod (&p->share_out, &tmp, &v->cfg->modulus, &p->share_out));
-
-  // out = d*e/2 + d[b] + e[a] + [c]
-  MP_CHECKC (mp_addmod (&p->share_out, &v->clientp->triple->c, 
-        &v->cfg->modulus, &p->share_out));
-
-  // We want to compute f(r)*g(r) - h(r),
-  // so subtract off [h(r)]:
-  //    out = d*e/2 + d[b] + e[a] + [c] - [h(r)]
-  MP_CHECKC (mp_sub (&p->share_out, &v->share_hR, &p->share_out));
-  MP_CHECKC (mp_mod (&p->share_out, &v->cfg->modulus, &p->share_out));
 
 cleanup:
   if (rv != SECSuccess) {
     PrioPacketVerify2_clear (p); 
   }
-  mp_clear (&d);
-  mp_clear (&e);
-  mp_clear (&tmp);
   return p;
 }
 
@@ -375,6 +432,63 @@ PrioPacketVerify2_clear (PrioPacketVerify2 p)
   if (!p) return; 
   mp_clear (&p->share_out);
   free (p);
+}
+
+SECStatus
+PrioPacketVerify2_set_data (PrioPacketVerify2 p2, const_PrioVerifier v,
+    const_PrioPacketVerify1 p1A, const_PrioPacketVerify1 p1B)
+{
+  SECStatus rv = SECSuccess;
+
+  mp_int d, e, tmp;
+  MP_DIGITS (&d) = NULL;
+  MP_DIGITS (&e) = NULL;
+  MP_DIGITS (&tmp) = NULL;
+
+  MP_CHECKC (mp_init (&d));
+  MP_CHECKC (mp_init (&e));
+  MP_CHECKC (mp_init (&tmp));
+
+  // Compute share of f(r)*g(r)
+  //    [f(r)*g(r)] = [d*e/2] + d[b] + e[a] + [c]
+ 
+ // Compute d 
+  MP_CHECKC (mp_addmod (&p1A->share_d, &p1B->share_d, &v->cfg->modulus, &d));
+  // Compute e
+  MP_CHECKC (mp_addmod (&p1A->share_e, &p1B->share_e, &v->cfg->modulus, &e));
+
+  // Compute d*e
+  MP_CHECKC (mp_mulmod (&d, &e, &v->cfg->modulus, &p2->share_out));
+  // out = d*e/2
+  MP_CHECKC (mp_mulmod (&p2->share_out, &v->cfg->inv2, 
+        &v->cfg->modulus, &p2->share_out));
+
+  // Compute d[b] 
+  MP_CHECKC (mp_mulmod (&d, &v->clientp->triple->b, 
+        &v->cfg->modulus, &tmp));
+  // out = d*e/2 + d[b] 
+  MP_CHECKC (mp_addmod (&p2->share_out, &tmp, &v->cfg->modulus, &p2->share_out));
+
+  // Compute e[a] 
+  MP_CHECKC (mp_mulmod (&e, &v->clientp->triple->a, &v->cfg->modulus, &tmp));
+  // out = d*e/2 + d[b] + e[a]
+  MP_CHECKC (mp_addmod (&p2->share_out, &tmp, &v->cfg->modulus, &p2->share_out));
+
+  // out = d*e/2 + d[b] + e[a] + [c]
+  MP_CHECKC (mp_addmod (&p2->share_out, &v->clientp->triple->c, 
+        &v->cfg->modulus, &p2->share_out));
+
+  // We want to compute f(r)*g(r) - h(r),
+  // so subtract off [h(r)]:
+  //    out = d*e/2 + d[b] + e[a] + [c] - [h(r)]
+  MP_CHECKC (mp_sub (&p2->share_out, &v->share_hR, &p2->share_out));
+  MP_CHECKC (mp_mod (&p2->share_out, &v->cfg->modulus, &p2->share_out));
+
+cleanup:
+  mp_clear (&d);
+  mp_clear (&e);
+  mp_clear (&tmp);
+  return rv;
 }
 
 int 

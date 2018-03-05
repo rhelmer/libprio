@@ -23,6 +23,9 @@ for the private computation of aggregate statistics:
 > by Henry Corrigan-Gibbs and Dan Boneh<br>
 > USENIX Symposium on Networked Systems Design and Implementation<br>
 > March 2017
+>
+> Available online at:
+>    https://crypto.stanford.edu/prio/
 
 **Usage scenario.**
 The library implements the cryptographic routines necessary
@@ -61,9 +64,7 @@ all arithmetic is modulo a prime *p* (we use an 87-bit prime by default),
 and "elements" are integers modulo *p*, 
 the dominant costs of the system are:
 * **Client compute:** O(*N* log *N*) multiplications 
-* **Client-to-server communication:** 4*N* + O(1) elements<br>
-    (NOTE: Using an optimization we haven't yet implemented, we can 
-    drop this cost to 2*N* + O(1) elements.)
+* **Client-to-server communication:** 2*N* + O(1) elements<br>
 * **Server compute:** O(*N* log *N*) multiplications to check each packet<br> 
     (NOTE: Using an optimization we haven't yet implemented, we can 
     drop this cost to O(*N*) multiplications per packet.)
@@ -101,9 +102,9 @@ The files in this directory are:
 /include    - Exported header files
               (Note: The public header is <mprio.h> since
               NSPR already has a file called <prio.h>.)
-/libmpi     - NSS MPI bignum library 
-/libmprio   - Prio library core code
+/mpi        - NSS MPI bignum library 
 /pclient    - Example code that uses the Prio library
+/prio       - Prio library core code
 /ptest      - Tests and test runner
 ````
 
@@ -112,14 +113,12 @@ The files in this directory are:
 * Implement public-key encryption for client packets. 
   The client data packet for server A must be encrypted using
   the public key of server A. Same for server B.
+* Swap out the toy AES implementation used in prio/prg.c with the
+  private NSS AES implementation.
 * Check that our usage of the NSS random-number generator is correct.
 
 
 ## Optimizations and features not yet implemented
-* **Client bandwidth.**
-  Using a pseudorandom generator (e.g., AES in counter mode),
-  we can reduce the client-to-server communication cost
-  by a factor of 2x.
 * **Server compute.**
   By using a fast polynomial interpolation-and-evaluation
   routine, we can reduce the cost of checking a single client
