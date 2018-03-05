@@ -156,7 +156,7 @@ cleanup:
 }
 
 PrioPacketClient
-PrioPacketClient_new (const_PrioConfig cfg, ServerId for_server)
+PrioPacketClient_new (const_PrioConfig cfg, PrioServerId for_server)
 {
   SECStatus rv = SECSuccess; 
   const int data_len = cfg->num_data_fields;
@@ -214,7 +214,7 @@ PrioPacketClient_set_data (const_PrioConfig cfg, const bool *data_in,
 
   if (!data_in) return SECFailure; 
 
-  P_CHECKC (PRGSeed_randomize (&pB->shares.B.seed));
+  P_CHECKC (PrioPRGSeed_randomize (&pB->shares.B.seed));
   P_CHECKA (prgB = PRG_new (pB->shares.B.seed));
 
   P_CHECKC (BeaverTriple_set_rand (cfg, pA->triple, pB->triple)); 

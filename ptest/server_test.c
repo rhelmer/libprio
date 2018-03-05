@@ -72,6 +72,9 @@ mu_test__verify_new (void)
   MP_DIGITS (&gR) = NULL;
   MP_DIGITS (&hR) = NULL;
 
+  PrioPRGSeed seed;
+  P_CHECKC (PrioPRGSeed_randomize (&seed));
+
   P_CHECKA (cfg = PrioConfig_defaultNew());
 
   const int ndata = PrioConfig_numDataFields (cfg);
@@ -82,8 +85,8 @@ mu_test__verify_new (void)
     data_items[i] = (i % 3 == 1) || (i % 5 == 3);
   }
 
-  P_CHECKA (sA = PrioServer_new (cfg, 0));
-  P_CHECKA (sB = PrioServer_new (cfg, 1));
+  P_CHECKA (sA = PrioServer_new (cfg, 0, seed));
+  P_CHECKA (sB = PrioServer_new (cfg, 1, seed));
 
   P_CHECKA (pA = PrioPacketClient_new (cfg, PRIO_SERVER_A));
   P_CHECKA (pB = PrioPacketClient_new (cfg, PRIO_SERVER_B));
@@ -101,15 +104,10 @@ mu_test__verify_new (void)
   MP_CHECKC (mp_mulmod (&fR, &gR, &cfg->modulus, &fR));
   mu_check (mp_cmp (&fR, &hR) == 0);
 
-  ServerSharedSecret sec = { 
-    0x12, 0x87, 0xd1, 0x12, 0x12, 
-    0x12, 0x87, 0xd1, 0x32, 0x22, 
-    0x12, 0x87, 0xd1, 0x18, 0x84, 
-    0x12, 0x87, 0xd1, 0x12, 0x12 };
   P_CHECKA (vA = PrioVerifier_new (sA));
   P_CHECKA (vB = PrioVerifier_new (sB));
-  P_CHECKC (PrioVerifier_set_data (vA, pA, sec));
-  P_CHECKC (PrioVerifier_set_data (vB, pB, sec));
+  P_CHECKC (PrioVerifier_set_data (vA, pA));
+  P_CHECKC (PrioVerifier_set_data (vB, pB));
 
   MP_CHECKC (mp_addmod (&vA->share_fR, &vB->share_fR, &cfg->modulus, &fR));
   MP_CHECKC (mp_addmod (&vA->share_gR, &vB->share_gR, &cfg->modulus, &gR));
@@ -163,6 +161,9 @@ verify_full (int tweak)
   MP_DIGITS (&gR) = NULL;
   MP_DIGITS (&hR) = NULL;
 
+  PrioPRGSeed seed;
+  P_CHECKC (PrioPRGSeed_randomize (&seed));
+
   P_CHECKA (cfg = PrioConfig_defaultNew());
 
   const int ndata = PrioConfig_numDataFields (cfg);
@@ -173,8 +174,8 @@ verify_full (int tweak)
     data_items[i] = (i % 3 == 1) || (i % 5 == 3);
   }
 
-  P_CHECKA (sA = PrioServer_new (cfg, 0));
-  P_CHECKA (sB = PrioServer_new (cfg, 1));
+  P_CHECKA (sA = PrioServer_new (cfg, 0, seed));
+  P_CHECKA (sB = PrioServer_new (cfg, 1, seed));
 
   P_CHECKA (pA = PrioPacketClient_new (cfg, PRIO_SERVER_A));
   P_CHECKA (pB = PrioPacketClient_new (cfg, PRIO_SERVER_B));
@@ -190,15 +191,10 @@ verify_full (int tweak)
         &pA->shares.A.data_shares->data[1]);
   }
 
-  ServerSharedSecret sec = { 
-    0x12, 0x87, 0xd1, 0x12, 0x12, 
-    0x12, 0x87, 0xd1, 0x32, 0x22, 
-    0x12, 0x87, 0xd1, 0x18, 0x84, 
-    0x12, 0x87, 0xd1, 0x12, 0x12 };
   P_CHECKA (vA = PrioVerifier_new (sA));
   P_CHECKA (vB = PrioVerifier_new (sB));
-  P_CHECKC (PrioVerifier_set_data (vA, pA, sec));
-  P_CHECKC (PrioVerifier_set_data (vB, pB, sec));
+  P_CHECKC (PrioVerifier_set_data (vA, pA));
+  P_CHECKC (PrioVerifier_set_data (vB, pB));
 
   P_CHECKA (p1A = PrioPacketVerify1_new ());
   P_CHECKA (p1B = PrioPacketVerify1_new ());

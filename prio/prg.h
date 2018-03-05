@@ -24,22 +24,13 @@
 #include "mpi/mpi.h"
 #include "config.h"
 
-/* Seed for a pseudo-random generator (PRG). */
-#define PRG_SEED_LENGTH AES_128_KEY_LENGTH
-typedef unsigned char PRGSeed[PRG_SEED_LENGTH];
-
 typedef struct prg *PRG;
 typedef const struct prg *const_PRG;
-
-/*
- * Generate a new PRG key using the NSS global randomness source.
- */
-SECStatus PRGSeed_randomize (PRGSeed *key);
 
 /* 
  * Initialize or destroy a pseudo-random generator.
  */
-PRG PRG_new (const PRGSeed key);
+PRG PRG_new (const PrioPRGSeed key);
 void PRG_clear (PRG prg);
 
 /* 

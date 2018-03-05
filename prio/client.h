@@ -35,7 +35,7 @@ struct server_b_data {
   // We use a pseudo-random generator to compress the secret-shared data
   // values. See Appendix I of the Prio paper (the paragraph starting
   // "Optimization: PRG secret sharing.") for details on this.
-  PRGSeed seed;
+  PrioPRGSeed seed;
 };
 
 /*
@@ -48,7 +48,7 @@ struct prio_packet_client {
   BeaverTriple triple;
 
   mp_int f0_share, g0_share, h0_share;
-  ServerId for_server;
+  PrioServerId for_server;
 
   union {
     struct server_a_data A;

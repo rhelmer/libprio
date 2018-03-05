@@ -17,22 +17,14 @@
 #ifndef __PRIO_H__
 #define __PRIO_H__
 
+#include <nss/blapi.h>
 #include <nss/seccomon.h>
 #include <stdbool.h>
 #include <stddef.h>
 
-/* The probability that a cheating client gets caught
- * is roughly:
- *     1 - 2*num_data_fields * 2^{-8*SOUNDNESS_PARAM}, 
- * where num_data_fields is the size of each client packet.
- * Setting this value to 20 is very conservative.
- */
-#define SOUNDNESS_PARAM 20
-
-/*
- * Shared secret between the two Prio servers.
- */
-typedef unsigned char ServerSharedSecret[SOUNDNESS_PARAM];
+/* Seed for a pseudo-random generator (PRG). */
+#define PRG_SEED_LENGTH AES_128_KEY_LENGTH
+typedef unsigned char PrioPRGSeed[PRG_SEED_LENGTH];
 
 /*
  * Type for each of the two servers.
@@ -40,7 +32,7 @@ typedef unsigned char ServerSharedSecret[SOUNDNESS_PARAM];
 typedef enum {
   PRIO_SERVER_A,
   PRIO_SERVER_B
-} ServerId;
+} PrioServerId;
 
 /*
  * Opaque types
@@ -93,7 +85,7 @@ int PrioConfig_numDataFields (const_PrioConfig cfg);
  * server B. The `for_server` parameter determines which server
  * the packet is for.
  */
-PrioPacketClient PrioPacketClient_new (const_PrioConfig cfg, ServerId for_server);
+PrioPacketClient PrioPacketClient_new (const_PrioConfig cfg, PrioServerId for_server);
 void PrioPacketClient_clear (PrioPacketClient p);
 
 /*
@@ -110,10 +102,21 @@ void PrioPacketClient_clear (PrioPacketClient p);
 SECStatus PrioPacketClient_set_data (const_PrioConfig cfg, const bool *data_in,
     PrioPacketClient for_server_a, PrioPacketClient for_server_b);
 
+
+/*
+ * Generate a new PRG seed using the NSS global randomness source.
+ * Use this routine to initialize the secret that the two Prio servers
+ * share.
+ */
+SECStatus PrioPRGSeed_randomize (PrioPRGSeed *seed);
+
 /*
  * The PrioServer object holds the state of the Prio servers.
+ * Pass in the _same_ secret PRGSeed when initializing the two servers.
+ * The PRGSeed must remain secret to the two servers.
  */
-PrioServer PrioServer_new (const_PrioConfig cfg, ServerId server_idx);
+PrioServer PrioServer_new (const_PrioConfig cfg, PrioServerId server_idx,
+    const PrioPRGSeed server_shared_secret);
 void PrioServer_clear (PrioServer s);
 
 
@@ -123,21 +126,11 @@ void PrioServer_clear (PrioServer s);
  * encoded packet is well formed.
  *
  * Don't clear the packet p until after verification is done.
- *
- * IMPORTANT: The value shared_secret passed in here is a 
- * secret value shared between the two servers. The servers must
- * use a fresh random value for _each_ verification step.
- * In practice, the servers can share a short seed (e.g., 128 bits)
- * and can use AES in counter mode to generate many shared
- * secrets without interacting further.
- *
- * TODO: Use AES as PRG to generate shared secret.
  */
 PrioVerifier PrioVerifier_new (PrioServer s);
 void PrioVerifier_clear (PrioVerifier v);
 
-SECStatus PrioVerifier_set_data (PrioVerifier v, const_PrioPacketClient p,
-    const ServerSharedSecret secret);
+SECStatus PrioVerifier_set_data (PrioVerifier v, const_PrioPacketClient p);
 
 /*
  * Generate the first packet that servers need to exchange

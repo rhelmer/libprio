@@ -65,20 +65,18 @@ test_client_agg (int nclients)
   PrioVerifier vA = NULL;
   PrioVerifier vB = NULL;
 
+  PrioPRGSeed seed;
+  P_CHECKC (PrioPRGSeed_randomize (&seed));
+
   P_CHECKA (cfg = PrioConfig_defaultNew());
-  P_CHECKA (sA = PrioServer_new (cfg, 0));
-  P_CHECKA (sB = PrioServer_new (cfg, 1));
+  P_CHECKA (sA = PrioServer_new (cfg, 0, seed));
+  P_CHECKA (sB = PrioServer_new (cfg, 1, seed));
   P_CHECKA (pA = PrioPacketClient_new (cfg, PRIO_SERVER_A));
   P_CHECKA (pB = PrioPacketClient_new (cfg, PRIO_SERVER_B));
   P_CHECKA (tA = PrioTotalShare_new ());
   P_CHECKA (tB = PrioTotalShare_new ());
   P_CHECKA (vA = PrioVerifier_new (sA));
   P_CHECKA (vB = PrioVerifier_new (sB));
-
-  ServerSharedSecret secret = { 0x10, 0x20, 0x30, 0x40,
-                              0x10, 0x20, 0x30, 0x40,
-                              0x10, 0x20, 0x30, 0x40,
-                              0x10, 0x20, 0x30, 0x40 };
 
   const int ndata = PrioConfig_numDataFields (cfg);
 
@@ -92,8 +90,8 @@ test_client_agg (int nclients)
     for (int i=0; i < nclients; i++) {
       P_CHECKC (PrioPacketClient_set_data (cfg, data_items, pA, pB));
               
-      P_CHECKC (PrioVerifier_set_data (vA, pA, secret));
-      P_CHECKC (PrioVerifier_set_data (vB, pB, secret));
+      P_CHECKC (PrioVerifier_set_data (vA, pA));
+      P_CHECKC (PrioVerifier_set_data (vB, pB));
 
       mu_check (PrioServer_aggregate (sA, vA) == SECSuccess);
       mu_check (PrioServer_aggregate (sB, vB) == SECSuccess);

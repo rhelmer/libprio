@@ -33,13 +33,13 @@ struct prg {
 
 
 SECStatus 
-PRGSeed_randomize (PRGSeed *key)
+PrioPRGSeed_randomize (PrioPRGSeed *key)
 {
   return rand_bytes ((unsigned char *)key, PRG_SEED_LENGTH);   
 }
 
 PRG 
-PRG_new (const PRGSeed key)
+PRG_new (const PrioPRGSeed key)
 {
   PRG prg = malloc (sizeof (*prg));
   if (!prg) return NULL;

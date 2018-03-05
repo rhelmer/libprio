@@ -19,25 +19,30 @@
 #define __SERVER_H__
 
 #include "mparray.h"
+#include "prg.h"
 #include "share.h"
 
 struct prio_total_share {
-  ServerId idx;
+  PrioServerId idx;
   MPArray data_shares;
 };
 
 struct prio_server {
   const_PrioConfig cfg;
 
-  ServerId idx;
+  PrioServerId idx;
 
   // The accumulated data values from the clients.
   MPArray data_shares;
+
+  // PRG used to generate randomness for checking the client
+  // data packets. Both servers initialize this PRG with the
+  // same shared seed.
+  PRG prg;
 };
 
 struct prio_verifier {
-  const_PrioConfig cfg;
-  ServerId idx;
+  PrioServer s;
 
   const_PrioPacketClient clientp;
   MPArray data_sharesB;

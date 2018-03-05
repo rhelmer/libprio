@@ -24,10 +24,10 @@ void
 mu_test__prg_simple (void) 
 {
   SECStatus rv = SECSuccess;
-  PRGSeed key;
+  PrioPRGSeed key;
   PRG prg = NULL;
 
-  P_CHECKC (PRGSeed_randomize (&key)); 
+  P_CHECKC (PrioPRGSeed_randomize (&key)); 
   P_CHECKA (prg = PRG_new (key)); 
 
 cleanup:
@@ -43,14 +43,14 @@ mu_test__prg_repeat (void)
   unsigned char buf1[buflen];
   unsigned char buf2[buflen];
 
-  PRGSeed key;
+  PrioPRGSeed key;
   PRG prg1 = NULL;
   PRG prg2 = NULL;
 
   buf1[3] = 'a';
   buf2[3] = 'b';
 
-  P_CHECKC (PRGSeed_randomize (&key)); 
+  P_CHECKC (PrioPRGSeed_randomize (&key)); 
   P_CHECKA (prg1 = PRG_new (key)); 
   P_CHECKA (prg2 = PRG_new (key)); 
 
@@ -83,11 +83,11 @@ mu_test__prg_repeat_int (void)
   MP_DIGITS (&out1) = NULL;
   MP_DIGITS (&out2) = NULL;
 
-  PRGSeed key;
+  PrioPRGSeed key;
   PRG prg1 = NULL;
   PRG prg2 = NULL;
 
-  P_CHECKC (PRGSeed_randomize (&key)); 
+  P_CHECKC (PrioPRGSeed_randomize (&key)); 
   P_CHECKA (prg1 = PRG_new (key)); 
   P_CHECKA (prg2 = PRG_new (key)); 
 
@@ -115,7 +115,7 @@ void
 test_prg_once (int limit)
 {
   SECStatus rv = SECSuccess;
-  PRGSeed key;
+  PrioPRGSeed key;
   mp_int max;
   mp_int out;
   PRG prg = NULL;
@@ -123,7 +123,7 @@ test_prg_once (int limit)
   MP_DIGITS (&max) = NULL;
   MP_DIGITS (&out) = NULL;
 
-  P_CHECKC (PRGSeed_randomize (&key)); 
+  P_CHECKC (PrioPRGSeed_randomize (&key)); 
   P_CHECKA (prg = PRG_new (key)); 
 
   MP_CHECKC (mp_init (&max)); 
@@ -184,7 +184,7 @@ test_prg_distribution (int limit)
 {
   int bins[limit];
   SECStatus rv = SECSuccess;
-  PRGSeed key;
+  PrioPRGSeed key;
   mp_int max;
   mp_int out;
   PRG prg = NULL;
@@ -192,7 +192,7 @@ test_prg_distribution (int limit)
   MP_DIGITS (&max) = NULL;
   MP_DIGITS (&out) = NULL;
 
-  P_CHECKC (PRGSeed_randomize (&key)); 
+  P_CHECKC (PrioPRGSeed_randomize (&key)); 
   P_CHECKA (prg = PRG_new (key)); 
 
   MP_CHECKC (mp_init (&max)); 
@@ -254,13 +254,13 @@ test_prg_distribution_large (mp_int *max)
   const int limit = 16;
   int bins[limit];
   SECStatus rv = SECSuccess;
-  PRGSeed key;
+  PrioPRGSeed key;
   mp_int out;
   PRG prg = NULL;
 
   MP_DIGITS (&out) = NULL;
 
-  P_CHECKC (PRGSeed_randomize (&key)); 
+  P_CHECKC (PrioPRGSeed_randomize (&key)); 
   P_CHECKA (prg = PRG_new (key)); 
 
   MP_CHECKC (mp_init (&out)); 
@@ -315,10 +315,10 @@ mu_test__prg_share_arr (void)
   MPArray arr = NULL;
   MPArray arr_share = NULL;
   PRG prg = NULL;
-  PRGSeed seed;
+  PrioPRGSeed seed;
 
   P_CHECKA (cfg = PrioConfig_defaultNew());
-  P_CHECKC (PRGSeed_randomize (&seed));
+  P_CHECKC (PrioPRGSeed_randomize (&seed));
   P_CHECKA (arr = MPArray_new (10));
   P_CHECKA (arr_share = MPArray_new (10));
   P_CHECKA (prg = PRG_new (seed));

@@ -20,21 +20,29 @@
 
 #include "mpi/mpi.h"
 #include "client.h"
+#include "prg.h"
 #include "poly.h"
 #include "mparray.h"
 #include "server.h"
 #include "util.h"
 
 PrioServer 
-PrioServer_new (const_PrioConfig cfg, ServerId server_idx)
+PrioServer_new (const_PrioConfig cfg, PrioServerId server_idx, const PrioPRGSeed seed)
 {
+  SECStatus rv = SECSuccess;
   PrioServer s = malloc (sizeof (*s));
   if (!s) return NULL;
   s->cfg = cfg;
   s->idx = server_idx;
-  s->data_shares = MPArray_new (s->cfg->num_data_fields);
-  if (!s->data_shares) { 
-    free (s);
+  s->data_shares = NULL;
+  s->prg = NULL;
+  
+  P_CHECKA (s->data_shares = MPArray_new (s->cfg->num_data_fields));
+  P_CHECKA (s->prg = PRG_new (seed));
+
+cleanup:
+  if (rv != SECSuccess) {
+    PrioServer_clear (s); 
     return NULL;
   }
 
@@ -46,6 +54,7 @@ PrioServer_clear (PrioServer s)
 {
   if (!s) return;
 
+  PRG_clear (s->prg);
   MPArray_clear (s->data_shares);
   free(s);
 }
@@ -137,7 +146,7 @@ cleanup:
 
 inline static mp_int *
 get_data_share (const_PrioVerifier v, int i) {
-  switch (v->idx) {
+  switch (v->s->idx) {
     case PRIO_SERVER_A:
       return &v->clientp->shares.A.data_shares->data[i];
     case PRIO_SERVER_B:
@@ -149,7 +158,7 @@ get_data_share (const_PrioVerifier v, int i) {
 
 inline static mp_int *
 get_h_share (const_PrioVerifier v, int i) {
-  switch (v->idx) {
+  switch (v->s->idx) {
     case PRIO_SERVER_A:
       return &v->clientp->shares.A.h_points->data[i];
     case PRIO_SERVER_B:
@@ -165,11 +174,10 @@ get_h_share (const_PrioVerifier v, int i) {
  * by the shared secret. Store the evaluations in the verifier object.
  */
 static SECStatus
-compute_shares (PrioVerifier v, const ServerSharedSecret secret, 
-    const_PrioPacketClient p)
+compute_shares (PrioVerifier v, const_PrioPacketClient p)
 {
   SECStatus rv;
-  const int n = v->cfg->num_data_fields + 1;
+  const int n = v->s->cfg->num_data_fields + 1;
   const int N = next_power_of_two (n);
   mp_int eval_at;
   MP_DIGITS (&eval_at) = NULL;
@@ -183,14 +191,14 @@ compute_shares (PrioVerifier v, const ServerSharedSecret secret,
   P_CHECKA (points_g = MPArray_new (N));
   P_CHECKA (points_h = MPArray_new (2*N));
 
-  // Use secret to generate random point
-  MP_CHECKC (mp_read_unsigned_octets (&eval_at, &secret[0], SOUNDNESS_PARAM));
+  // Use PRG to generate random point
+  MP_CHECKC (PRG_get_int (v->s->prg, &eval_at, &v->s->cfg->modulus));
  
   // Reduce value into the field we're using. This 
   // doesn't yield exactly a uniformly random point,
   // but for values this large, it will be close
   // enough.
-  MP_CHECKC (mp_mod (&eval_at, &v->cfg->modulus, &eval_at));
+  MP_CHECKC (mp_mod (&eval_at, &v->s->cfg->modulus, &eval_at));
 
   // Client sends us the values of f(0) and g(0)
   MP_CHECKC (mp_copy(&p->f0_share, &points_f->data[0]));
@@ -205,9 +213,9 @@ compute_shares (PrioVerifier v, const ServerSharedSecret secret,
     // [g](i) = i-th data share minus 1
     // Only need to shift the share for 0-th server
     MP_CHECKC (mp_copy(&points_f->data[i], &points_g->data[i]));
-    if (!v->idx) {
+    if (!v->s->idx) {
       MP_CHECKC (mp_sub_d(&points_g->data[i], 1, &points_g->data[i]));
-      MP_CHECKC (mp_mod(&points_g->data[i], &v->cfg->modulus, &points_g->data[i]));
+      MP_CHECKC (mp_mod(&points_g->data[i], &v->s->cfg->modulus, &points_g->data[i]));
     }
   }
 
@@ -217,9 +225,9 @@ compute_shares (PrioVerifier v, const ServerSharedSecret secret,
     MP_CHECKC (mp_copy(h_point_j, &points_h->data[i]));
   }
 
-  P_CHECKC (poly_interp_evaluate (&v->share_fR, points_f, &eval_at, v->cfg));
-  P_CHECKC (poly_interp_evaluate (&v->share_gR, points_g, &eval_at, v->cfg));
-  P_CHECKC (poly_interp_evaluate (&v->share_hR, points_h, &eval_at, v->cfg));
+  P_CHECKC (poly_interp_evaluate (&v->share_fR, points_f, &eval_at, v->s->cfg));
+  P_CHECKC (poly_interp_evaluate (&v->share_gR, points_g, &eval_at, v->s->cfg));
+  P_CHECKC (poly_interp_evaluate (&v->share_hR, points_h, &eval_at, v->s->cfg));
 
 cleanup:
   MPArray_clear (points_f);
@@ -235,8 +243,7 @@ PrioVerifier PrioVerifier_new (PrioServer s)
   PrioVerifier v = malloc (sizeof *v);
   if (!v) return NULL;
 
-  v->cfg = s->cfg;
-  v->idx = s->idx;
+  v->s = s;
   v->clientp = NULL;
   v->data_sharesB = NULL;
   v->h_pointsB = NULL;
@@ -250,8 +257,8 @@ PrioVerifier PrioVerifier_new (PrioServer s)
   MP_CHECKC (mp_init (&v->share_hR)); 
 
   const int N = next_power_of_two (s->cfg->num_data_fields + 1);
-  if (v->idx == PRIO_SERVER_B) {
-    P_CHECKA (v->data_sharesB = MPArray_new (v->cfg->num_data_fields));
+  if (v->s->idx == PRIO_SERVER_B) {
+    P_CHECKA (v->data_sharesB = MPArray_new (v->s->cfg->num_data_fields));
     P_CHECKA (v->h_pointsB = MPArray_new (N));
   }
 
@@ -265,17 +272,16 @@ cleanup:
 }
 
 
-SECStatus PrioVerifier_set_data (PrioVerifier v, const_PrioPacketClient p, 
-    const ServerSharedSecret secret)
+SECStatus PrioVerifier_set_data (PrioVerifier v, const_PrioPacketClient p)
 {
   PRG prgB = NULL;
-  if (p->for_server != v->idx)
+  if (p->for_server != v->s->idx)
     return SECFailure;
 
-  const int N = next_power_of_two (v->cfg->num_data_fields + 1);
-  if (v->idx == PRIO_SERVER_A) {
+  const int N = next_power_of_two (v->s->cfg->num_data_fields + 1);
+  if (v->s->idx == PRIO_SERVER_A) {
     // Check that packet has the correct number of data fields
-    if (p->shares.A.data_shares->len != v->cfg->num_data_fields)
+    if (p->shares.A.data_shares->len != v->s->cfg->num_data_fields)
       return SECFailure;
     if (p->shares.A.h_points->len != N)
       return SECFailure;
@@ -284,10 +290,10 @@ SECStatus PrioVerifier_set_data (PrioVerifier v, const_PrioPacketClient p,
   v->clientp = p;
   SECStatus rv = SECSuccess;
 
-  if (v->idx == PRIO_SERVER_B) {
+  if (v->s->idx == PRIO_SERVER_B) {
     P_CHECKA (prgB = PRG_new (v->clientp->shares.B.seed));
-    P_CHECKC (PRG_get_array (prgB, v->data_sharesB, &v->cfg->modulus));
-    P_CHECKC (PRG_get_array (prgB, v->h_pointsB, &v->cfg->modulus));
+    P_CHECKC (PRG_get_array (prgB, v->data_sharesB, &v->s->cfg->modulus));
+    P_CHECKC (PRG_get_array (prgB, v->h_pointsB, &v->s->cfg->modulus));
   }
 
   // TODO: This can be done much faster by using the combined
@@ -295,7 +301,7 @@ SECStatus PrioVerifier_set_data (PrioVerifier v, const_PrioPacketClient p,
   // Prio paper.
   //
   // Compute share of f(r), g(r), h(r)
-  P_CHECKC (compute_shares (v, secret, p)); 
+  P_CHECKC (compute_shares (v, p)); 
 
 cleanup:
 
@@ -357,11 +363,11 @@ PrioPacketVerify1_set_data (PrioPacketVerify1 p1, const_PrioVerifier v)
   // Compute corrections.
   //   [d] = [f(r)] - [a]
   MP_CHECK (mp_sub (&v->share_fR, &v->clientp->triple->a, &p1->share_d));
-  MP_CHECK (mp_mod (&p1->share_d, &v->cfg->modulus, &p1->share_d));
+  MP_CHECK (mp_mod (&p1->share_d, &v->s->cfg->modulus, &p1->share_d));
 
   //   [e] = [g(r)] - [b]
   MP_CHECK (mp_sub (&v->share_gR, &v->clientp->triple->b, &p1->share_e));
-  MP_CHECK (mp_mod (&p1->share_e, &v->cfg->modulus, &p1->share_e));
+  MP_CHECK (mp_mod (&p1->share_e, &v->s->cfg->modulus, &p1->share_e));
 
   return rv;
 }
@@ -406,40 +412,40 @@ PrioPacketVerify2_set_data (PrioPacketVerify2 p2, const_PrioVerifier v,
   MP_CHECKC (mp_init (&e));
   MP_CHECKC (mp_init (&tmp));
 
+  const mp_int *mod = &v->s->cfg->modulus;
+
   // Compute share of f(r)*g(r)
   //    [f(r)*g(r)] = [d*e/2] + d[b] + e[a] + [c]
  
  // Compute d 
-  MP_CHECKC (mp_addmod (&p1A->share_d, &p1B->share_d, &v->cfg->modulus, &d));
+  MP_CHECKC (mp_addmod (&p1A->share_d, &p1B->share_d, mod, &d));
   // Compute e
-  MP_CHECKC (mp_addmod (&p1A->share_e, &p1B->share_e, &v->cfg->modulus, &e));
+  MP_CHECKC (mp_addmod (&p1A->share_e, &p1B->share_e, mod, &e));
 
   // Compute d*e
-  MP_CHECKC (mp_mulmod (&d, &e, &v->cfg->modulus, &p2->share_out));
+  MP_CHECKC (mp_mulmod (&d, &e, mod, &p2->share_out));
   // out = d*e/2
-  MP_CHECKC (mp_mulmod (&p2->share_out, &v->cfg->inv2, 
-        &v->cfg->modulus, &p2->share_out));
+  MP_CHECKC (mp_mulmod (&p2->share_out, &v->s->cfg->inv2, 
+        mod, &p2->share_out));
 
   // Compute d[b] 
-  MP_CHECKC (mp_mulmod (&d, &v->clientp->triple->b, 
-        &v->cfg->modulus, &tmp));
+  MP_CHECKC (mp_mulmod (&d, &v->clientp->triple->b, mod, &tmp));
   // out = d*e/2 + d[b] 
-  MP_CHECKC (mp_addmod (&p2->share_out, &tmp, &v->cfg->modulus, &p2->share_out));
+  MP_CHECKC (mp_addmod (&p2->share_out, &tmp, mod, &p2->share_out));
 
   // Compute e[a] 
-  MP_CHECKC (mp_mulmod (&e, &v->clientp->triple->a, &v->cfg->modulus, &tmp));
+  MP_CHECKC (mp_mulmod (&e, &v->clientp->triple->a, mod, &tmp));
   // out = d*e/2 + d[b] + e[a]
-  MP_CHECKC (mp_addmod (&p2->share_out, &tmp, &v->cfg->modulus, &p2->share_out));
+  MP_CHECKC (mp_addmod (&p2->share_out, &tmp, mod, &p2->share_out));
 
   // out = d*e/2 + d[b] + e[a] + [c]
-  MP_CHECKC (mp_addmod (&p2->share_out, &v->clientp->triple->c, 
-        &v->cfg->modulus, &p2->share_out));
+  MP_CHECKC (mp_addmod (&p2->share_out, &v->clientp->triple->c, mod, &p2->share_out));
 
   // We want to compute f(r)*g(r) - h(r),
   // so subtract off [h(r)]:
   //    out = d*e/2 + d[b] + e[a] + [c] - [h(r)]
   MP_CHECKC (mp_sub (&p2->share_out, &v->share_hR, &p2->share_out));
-  MP_CHECKC (mp_mod (&p2->share_out, &v->cfg->modulus, &p2->share_out));
+  MP_CHECKC (mp_mod (&p2->share_out, mod, &p2->share_out));
 
 cleanup:
   mp_clear (&d);
@@ -462,7 +468,7 @@ PrioVerifier_isValid (const_PrioVerifier v,
   // that
   //      f(r) * g(r) == h(r).
   MP_CHECKC (mp_addmod (&pA->share_out, &pB->share_out,
-        &v->cfg->modulus, &res));
+        &v->s->cfg->modulus, &res));
 
   rv = (mp_cmp_d (&res, 0) == 0) ? SECSuccess : SECFailure;
 

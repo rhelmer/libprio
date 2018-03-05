@@ -39,6 +39,7 @@ verify_full (void)
   PrioTotalShare tA = NULL;
   PrioTotalShare tB = NULL;
 
+  // Initialize NSS random number generator.
   P_CHECKC (Prio_init ());
 
   // Number of different boolean data fields we collect.
@@ -54,6 +55,9 @@ verify_full (void)
     // Use the default configuration parameters.
     P_CHECKA (cfg = PrioConfig_new (ndata));
 
+    PrioPRGSeed server_secret;
+    P_CHECKC (PrioPRGSeed_randomize (&server_secret));
+
     // Initialize two server objects. The role of the servers need not
     // be symmetric. In a deployment, we envision that:
     //   * Server A is the main telemetry server that is always online. 
@@ -61,8 +65,8 @@ verify_full (void)
     //     Server A stores them.
     //   * Server B only comes online when the two servers want to compute
     //     the final aggregate statistics.
-    P_CHECKA (sA = PrioServer_new (cfg, 0));
-    P_CHECKA (sB = PrioServer_new (cfg, 1));
+    P_CHECKA (sA = PrioServer_new (cfg, PRIO_SERVER_A, server_secret));
+    P_CHECKA (sB = PrioServer_new (cfg, PRIO_SERVER_B, server_secret));
 
     // Initialize empty verifier objects
     P_CHECKA (vA = PrioVerifier_new (sA)); 
@@ -128,17 +132,9 @@ verify_full (void)
       //       running total of aggregate statistics) or ill-formed
       //       (in which case they ignore it).
 
-      // The servers must generate a new shared secret to check each client
-      // request. (Reusing the same randomness to check multiple requests is
-      // NOT safe.) The servers can use a PRG (e.g., AES in counter mode) to
-      // generate many shared secrets from a short (e.g., 128-bit) seed.
-      ServerSharedSecret sec;
-      P_CHECKC (rand_bytes (sec, SOUNDNESS_PARAM));
-
-      // Use the shared secret between the servers to set up 
-      // a Prio verifier object.
-      P_CHECKC (PrioVerifier_set_data (vA, pA, sec));
-      P_CHECKC (PrioVerifier_set_data (vB, pB, sec));
+      // Set up a Prio verifier object.
+      P_CHECKC (PrioVerifier_set_data (vA, pA));
+      P_CHECKC (PrioVerifier_set_data (vB, pB));
 
       // Both servers produce a packet1. Server A sends p1A to Server B
       // and vice versa.
