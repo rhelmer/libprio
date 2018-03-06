@@ -98,31 +98,28 @@ verify_full (void)
       // I. CLIENT DATA SUBMISSION.
       //
       // Construct the client data packets.
-      //
-      // An important TODO item is that the packet pA must be encrypted
-      // with the public key of server A. The packet pB must be encrypted
-      // with the public key of server B.  The client can then send both
-      // encrypted packets to a _single_ telemetry server. 
+      P_CHECKC (PrioPacketClient_set_data (cfg, data_items, pA, pB));
+
+      // TODO: (1)  encrypt packet pA with the public key of server A
+      //       (2)  encrupt packet pB with the public key of server B
+      //       (3)  send encrypted pA, pB to a single telemetry server
+      //            for processing at a later time.
       //
       // The Prio servers A and B can come online later (e.g., at the end of
       // each day) to download the encrypted telemetry packets from the
       // telemetry server and run the protocol that computes the aggregate
-      // statistics. 
-      //
-      // In this way, the client only needs to send a single message (the pair
-      // of encrypted ClientPacketData packets) to a single server (the
-      // telemetry-data-collection server).
-      P_CHECKC (PrioPacketClient_set_data (cfg, data_items, pA, pB));
-
+      // statistics. In this way, the client only needs to send a 
+      // single message (the pair of encrypted ClientPacketData packets) 
+      // to a single server (the telemetry-data-collection server).
 
       // THE CLIENT'S JOB IS DONE. The rest of the processing just takes place
-      // between the two servers.
+      // between the two servers A and B.
 
 
       // II. VALIDATION PROTOCOL. (at servers)
       //
-      // The servers now run a short protocol to check each client's packet.
-      // The protocol works in two steps:
+      // The servers now run a short 2-step protocol to check each 
+      // client's packet:
       //    1) Servers A and B broadcast one message (PrioPacketVerify1) 
       //       to each other.
       //    2) Servers A and B broadcast another message (PrioPacketVerify2)
@@ -131,6 +128,9 @@ verify_full (void)
       //       submission is well-formed (in which case they add it to their
       //       running total of aggregate statistics) or ill-formed
       //       (in which case they ignore it).
+      // These messages must be sent over an authenticated channel, so
+      // that each server is assured that every received message came 
+      // from its peer.
 
       // Set up a Prio verifier object.
       P_CHECKC (PrioVerifier_set_data (vA, pA));
