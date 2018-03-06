@@ -17,7 +17,7 @@
 #ifndef __PRIO_H__
 #define __PRIO_H__
 
-#include <nss/blapi.h>
+#include <nss/blapit.h>
 #include <nss/seccomon.h>
 #include <stdbool.h>
 #include <stddef.h>
