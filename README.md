@@ -77,7 +77,13 @@ You must first install [NSS/NSPR](https://developer.mozilla.org/en-US/docs/Mozil
 and [scons](http://scons.org/).
 On Ubuntu, you can do this with:
 
-    $ sudo apt-get install scons libnspr4-dev libnss3-dev 
+    $ sudo apt install scons libnspr4-dev libnss3-dev
+
+For macOS using Homebrew:
+    $ brew install nss nspr scons
+
+    $ export LDFLAGS="-L/usr/local/opt/nss/lib"
+    $ export CPPFLAGS="-I/usr/local/opt/nss/include -I/usr/local/opt/nspr/include/nspr"
 
 To compile the code, run:
 
