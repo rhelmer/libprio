@@ -22,6 +22,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Seed for a pseudo-random generator (PRG). */
 #define PRG_SEED_LENGTH AES_128_KEY_LENGTH
 typedef unsigned char PrioPRGSeed[PRG_SEED_LENGTH];
@@ -195,3 +199,6 @@ SECStatus PrioTotalShare_final (const_PrioConfig cfg, unsigned long *output,
 
 #endif /* __PRIO_H__ */
 
+#ifdef __cplusplus
+}
+#endif
